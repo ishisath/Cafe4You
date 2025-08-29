@@ -4,7 +4,7 @@ class Database {
     private $host = "localhost";
     private $database_name = "restaurant_db";
     private $username = "root";
-    private $password = "";
+    private $password = "dfGH#$24%1";
     public $conn;
 
     public function getConnection() {
