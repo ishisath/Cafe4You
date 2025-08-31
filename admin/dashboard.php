@@ -155,60 +155,127 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
             theme: {
                 extend: {
                     colors: {
-                        'brand-orange': '#FF6B35',
-                        'brand-cream': '#FFF8F0'
+                        'brand-yellow': '#FCD34D',
+                        'brand-amber': '#F59E0B',
+                        'brand-cream': '#FFF8F0',
+                        'sidebar-bg': '#2C3E50',
+                        'sidebar-hover': '#34495E'
                     }
                 }
             }
         }
     </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .card-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .gradient-card {
+            background: linear-gradient(135deg, var(--tw-gradient-stops));
+        }
+        
+        .nav-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #FCD34D;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .nav-item.active {
+            background: rgba(252, 211, 77, 0.1);
+            color: #FCD34D;
+            border-right: 3px solid #FCD34D;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Admin Navigation -->
-    <nav class="bg-gray-800 text-white">
-        <div class="max-w-7xl mx-auto px-4">
+<body class="bg-gray-50 font-sans">
+    <!-- Top Navigation -->
+    <nav class="bg-sidebar-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-6">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-brand-orange rounded-xl flex items-center justify-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-brand-yellow to-brand-amber rounded-xl flex items-center justify-center">
                         <span class="text-white font-bold text-lg">C</span>
                     </div>
-                    <h1 class="text-2xl font-bold text-brand-orange">Cafe For You - Admin</h1>
+                    <h1 class="text-xl font-bold">Cafe For You - Admin</h1>
                 </div>
-                
+
                 <div class="flex items-center space-x-6">
-                    <span>Welcome, <?= htmlspecialchars($_SESSION['full_name']) ?></span>
-                    <a href="../index.php" class="text-gray-300 hover:text-white transition">View Site</a>
-                    <a href="../logout.php" class="bg-brand-orange text-white px-4 py-2 rounded hover:bg-orange-700 transition">Logout</a>
+                    <span class="text-gray-300">Welcome, <?= htmlspecialchars($_SESSION['full_name']) ?></span>
+                    <a href="../index.php" class="text-gray-300 hover:text-white transition-colors duration-300">View Site</a>
+                    <a href="../logout.php" class="bg-gradient-to-r from-brand-yellow to-brand-amber text-white px-4 py-2 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-medium">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="flex">
+    <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-lg min-h-screen">
+        <aside class="w-64 bg-white shadow-lg">
             <nav class="mt-8">
                 <div class="px-4 space-y-2">
-                    <a href="dashboard.php" class="block px-4 py-2 text-gray-700 bg-orange-50 border-r-4 border-brand-orange font-medium">
-                        📊 Dashboard
+                    <a href="dashboard.php" class="nav-item active flex items-center px-4 py-3 text-brand-yellow bg-yellow-50 transition-all duration-300 rounded-lg mx-2 font-medium">
+                        <svg class="w-5 h-5 mr-3 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        </svg>
+                        Dashboard
                     </a>
-                    <a href="orders.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        🛒 Orders
+                    <a href="orders.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        Orders
                     </a>
-                    <a href="menu.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        🍽️ Menu Management
+                    <a href="menu.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        Menu Management
                     </a>
-                    <a href="categories.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        📂 Categories
+                    <a href="categories.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Categories
                     </a>
-                    <a href="reservations.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        📅 Reservations
+                    <a href="reservations.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1V8a1 1 0 011-1h3z"></path>
+                        </svg>
+                        Reservations
                     </a>
-                    <a href="users.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        👥 Users
+                    <a href="users.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                        Users
                     </a>
-                    <a href="messages.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
-                        📧 Messages
+                    <a href="messages.php" class="nav-item flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-300 rounded-lg mx-2">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        Contact Messages
                         <?php if ($stats['unread_messages'] > 0): ?>
                             <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2">
                                 <?= $stats['unread_messages'] ?>
@@ -220,242 +287,263 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-8">
-            <div class="mb-8">
-                <h1 class="text-4xl font-bold text-gray-800">📈 Dashboard Overview</h1>
-                <p class="text-gray-600 mt-2">Welcome to your restaurant management system - Real-time insights and analytics</p>
-            </div>
-
-            <?php displayMessage(); ?>
-
-            <!-- Key Performance Indicators -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Total Revenue Card -->
-                <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-green-100 text-sm">Total Revenue</p>
-                            <p class="text-3xl font-bold">$<?= number_format($stats['total_revenue'], 2) ?></p>
-                            <p class="text-green-100 text-xs mt-1">All time</p>
-                        </div>
-                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V9M19 21H5V3H13V9H19Z"/>
+        <main class="flex-1 overflow-hidden">
+            <div class="p-8">
+                <!-- Header Section -->
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">Dashboard Overview</h1>
+                            <p class="text-gray-600 mt-1">Welcome to your restaurant management system - Real-time insights and analytics</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Total Orders Card -->
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-blue-100 text-sm">Total Orders</p>
-                            <p class="text-3xl font-bold"><?= number_format($stats['total_orders']) ?></p>
-                            <p class="text-blue-100 text-xs mt-1">Average: $<?= number_format($stats['avg_order_value'], 2) ?></p>
-                        </div>
-                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 18C5.9 18 5 18.9 5 20S5.9 22 7 22 9 21.1 9 20 8.1 18 7 18ZM1 2V4H3L6.6 11.59L5.25 14.04C5.09 14.32 5 14.65 5 15C5 16.1 5.9 17 7 17H19V15H7.42C7.28 15 7.17 14.89 7.17 14.75L7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.59 17.3 11.97L20.88 5H5.21L4.27 3H1ZM17 18C15.9 18 15 18.9 15 20S15.9 22 17 22 19 21.1 19 20 18.1 18 17 18Z"/>
+                <?php displayMessage(); ?>
+
+                <!-- Key Performance Indicators -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Revenue Card -->
+                    <div class="gradient-card from-green-500 to-green-600 rounded-2xl p-6 text-white hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white/80 text-sm font-medium">Total Revenue</h3>
+                            <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                             </svg>
                         </div>
+                        <div class="text-3xl font-bold mb-2">$<?= number_format($stats['total_revenue'], 2) ?></div>
+                        <div class="text-white/70 text-sm">All time</div>
+                    </div>
+
+                    <!-- Total Orders Card -->
+                    <div class="gradient-card from-blue-500 to-blue-600 rounded-2xl p-6 text-white hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white/80 text-sm font-medium">Total Orders</h3>
+                            <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold mb-2"><?= number_format($stats['total_orders']) ?></div>
+                        <div class="text-white/70 text-sm">Average: $<?= number_format($stats['avg_order_value'], 2) ?></div>
+                    </div>
+
+                    <!-- Total Customers Card -->
+                    <div class="gradient-card from-purple-500 to-purple-600 rounded-2xl p-6 text-white hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white/80 text-sm font-medium">Total Customers</h3>
+                            <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold mb-2"><?= number_format($stats['total_customers']) ?></div>
+                        <div class="text-white/70 text-sm">+<?= $stats['new_customers'] ?> this month</div>
+                    </div>
+
+                    <!-- Menu Items Card -->
+                    <div class="gradient-card from-brand-yellow to-brand-amber rounded-2xl p-6 text-white hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-white/80 text-sm font-medium">Menu Items</h3>
+                            <svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold mb-2"><?= number_format($stats['total_menu_items']) ?></div>
+                        <div class="text-white/70 text-sm"><?= $stats['available_menu_items'] ?> available</div>
                     </div>
                 </div>
 
-                <!-- Total Customers Card -->
-                <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-purple-100 text-sm">Total Customers</p>
-                            <p class="text-3xl font-bold"><?= number_format($stats['total_customers']) ?></p>
-                            <p class="text-purple-100 text-xs mt-1">+<?= $stats['new_customers'] ?> this month</p>
-                        </div>
-                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M16 4C18.2 4 20 5.8 20 8S18.2 12 16 12 12 10.2 12 8 13.8 4 16 4M16 14C20.4 14 24 15.8 24 18V20H8V18C8 15.8 11.6 14 16 14M12.5 11.5C14.4 11.5 16 9.9 16 8S14.4 4.5 12.5 4.5 9 6.1 9 7.5 10.6 11.5 12.5 11.5M12.5 13C8.1 13 0 15.1 0 19.5V22H12.5C11 21.2 10 19.9 10 18.5C10 16.1 11.1 14 12.5 13Z"/>
-                            </svg>
-                        </div>
+                <!-- Today's Statistics -->
+                <div class="grid md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                        <h3 class="text-sm font-medium text-gray-500">Today's Revenue</h3>
+                        <p class="text-2xl font-bold text-gray-900">$<?= number_format($stats['today_revenue'], 2) ?></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+                        <h3 class="text-sm font-medium text-gray-500">Today's Orders</h3>
+                        <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['today_orders']) ?></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
+                        <h3 class="text-sm font-medium text-gray-500">Today's Reservations</h3>
+                        <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['today_reservations']) ?></p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
+                        <h3 class="text-sm font-medium text-gray-500">Pending Reservations</h3>
+                        <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['pending_reservations']) ?></p>
                     </div>
                 </div>
 
-                <!-- Menu Items Card -->
-                <div class="bg-gradient-to-r from-brand-orange to-red-500 rounded-xl shadow-lg p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-orange-100 text-sm">Menu Items</p>
-                            <p class="text-3xl font-bold"><?= number_format($stats['total_menu_items']) ?></p>
-                            <p class="text-orange-100 text-xs mt-1"><?= $stats['available_menu_items'] ?> available</p>
-                        </div>
-                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8.1 13.34L2.91 8.15C2.35 7.59 2.35 6.66 2.91 6.1S4.25 5.54 4.81 6.1L9.5 10.79L19.19 1.1C19.75 .54 20.68 .54 21.24 1.1S21.8 2.44 21.24 3L10.81 13.43C10.25 13.99 9.32 13.99 8.76 13.43L8.1 13.34Z"/>
+                <!-- Charts and Analytics Section -->
+                <div class="grid lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Revenue Chart -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
-                        </div>
+                            Monthly Revenue (Last 6 Months)
+                        </h3>
+                        <canvas id="revenueChart" width="400" height="200"></canvas>
                     </div>
-                </div>
-            </div>
 
-            <!-- Today's Statistics -->
-            <div class="grid md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                    <h3 class="text-sm font-medium text-gray-500">Today's Revenue</h3>
-                    <p class="text-2xl font-bold text-gray-900">$<?= number_format($stats['today_revenue'], 2) ?></p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                    <h3 class="text-sm font-medium text-gray-500">Today's Orders</h3>
-                    <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['today_orders']) ?></p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-                    <h3 class="text-sm font-medium text-gray-500">Today's Reservations</h3>
-                    <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['today_reservations']) ?></p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
-                    <h3 class="text-sm font-medium text-gray-500">Pending Reservations</h3>
-                    <p class="text-2xl font-bold text-gray-900"><?= number_format($stats['pending_reservations']) ?></p>
-                </div>
-            </div>
-
-            <!-- Charts and Analytics Section -->
-            <div class="grid lg:grid-cols-2 gap-8 mb-8">
-                <!-- Revenue Chart -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">📈 Monthly Revenue (Last 6 Months)</h3>
-                    <canvas id="revenueChart" width="400" height="200"></canvas>
-                </div>
-
-                <!-- Order Status Distribution -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Order Status Distribution</h3>
-                    <div class="space-y-4">
-                        <?php
-                        $status_colors = [
-                            'pending' => 'bg-yellow-500',
-                            'confirmed' => 'bg-blue-500',
-                            'preparing' => 'bg-purple-500',
-                            'ready' => 'bg-green-500',
-                            'delivered' => 'bg-gray-500',
-                            'cancelled' => 'bg-red-500'
-                        ];
-                        
-                        foreach ($stats['order_status'] as $status => $count):
-                            $percentage = $stats['total_orders'] > 0 ? ($count / $stats['total_orders']) * 100 : 0;
-                        ?>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <div class="w-4 h-4 <?= $status_colors[$status] ?? 'bg-gray-400' ?> rounded mr-3"></div>
-                                    <span class="text-sm font-medium text-gray-700"><?= ucfirst($status) ?></span>
-                                </div>
-                                <div class="flex items-center">
-                                    <span class="text-sm text-gray-600 mr-2"><?= $count ?></span>
-                                    <div class="w-20 bg-gray-200 rounded-full h-2">
-                                        <div class="<?= $status_colors[$status] ?? 'bg-gray-400' ?> h-2 rounded-full" style="width: <?= $percentage ?>%"></div>
+                    <!-- Order Status Distribution -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Order Status Distribution
+                        </h3>
+                        <div class="space-y-4">
+                            <?php
+                            $status_colors = [
+                                'pending' => 'bg-yellow-500',
+                                'confirmed' => 'bg-blue-500',
+                                'preparing' => 'bg-purple-500',
+                                'ready' => 'bg-green-500',
+                                'delivered' => 'bg-gray-500',
+                                'cancelled' => 'bg-red-500'
+                            ];
+                            
+                            foreach ($stats['order_status'] as $status => $count):
+                                $percentage = $stats['total_orders'] > 0 ? ($count / $stats['total_orders']) * 100 : 0;
+                            ?>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 <?= $status_colors[$status] ?? 'bg-gray-400' ?> rounded mr-3"></div>
+                                        <span class="text-sm font-medium text-gray-700"><?= ucfirst($status) ?></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="text-sm text-gray-600 mr-2"><?= $count ?></span>
+                                        <div class="w-20 bg-gray-200 rounded-full h-2">
+                                            <div class="<?= $status_colors[$status] ?? 'bg-gray-400' ?> h-2 rounded-full" style="width: <?= $percentage ?>%"></div>
+                                        </div>
                                     </div>
                                 </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popular Items -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        Most Popular Menu Items
+                    </h3>
+                    <div class="grid md:grid-cols-5 gap-4">
+                        <?php foreach ($popular_items as $index => $item): ?>
+                            <div class="text-center p-4 rounded-xl bg-gray-50 hover-lift">
+                                <div class="w-8 h-8 bg-gradient-to-r from-brand-yellow to-brand-amber text-white rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                                    <?= $index + 1 ?>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 text-sm"><?= htmlspecialchars($item['name']) ?></h4>
+                                <p class="text-xs text-gray-500"><?= $item['total_ordered'] ?> orders</p>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
-            </div>
 
-            <!-- Popular Items -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">🍽️ Most Popular Menu Items</h3>
-                <div class="grid md:grid-cols-5 gap-4">
-                    <?php foreach ($popular_items as $index => $item): ?>
-                        <div class="text-center p-4 rounded-lg bg-gray-50">
-                            <div class="w-8 h-8 bg-brand-orange text-white rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">
-                                <?= $index + 1 ?>
-                            </div>
-                            <h4 class="font-medium text-gray-900 text-sm"><?= htmlspecialchars($item['name']) ?></h4>
-                            <p class="text-xs text-gray-500"><?= $item['total_ordered'] ?> orders</p>
+                <!-- Recent Activity Section -->
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Recent Orders -->
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div class="bg-gradient-to-r from-brand-yellow to-brand-amber px-6 py-4">
+                            <h3 class="text-white font-semibold text-lg flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                </svg>
+                                Recent Orders
+                            </h3>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
+                        <div class="p-6">
+                            <?php if (empty($recent_orders)): ?>
+                                <p class="text-gray-500 text-center py-4">No orders yet</p>
+                            <?php else: ?>
+                                <div class="space-y-4">
+                                    <?php foreach ($recent_orders as $order): ?>
+                                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Order #<?= $order['id'] ?></p>
+                                                <p class="text-sm text-gray-500"><?= htmlspecialchars($order['full_name']) ?></p>
+                                                <p class="text-xs text-gray-400"><?= date('M j, g:i A', strtotime($order['created_at'])) ?></p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="font-bold text-gray-900">$<?= number_format($order['total_amount'], 2) ?></p>
+                                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                                    <?php
+                                                    $status_colors = [
+                                                        'pending' => 'bg-yellow-100 text-yellow-800',
+                                                        'confirmed' => 'bg-blue-100 text-blue-800',
+                                                        'preparing' => 'bg-purple-100 text-purple-800',
+                                                        'ready' => 'bg-green-100 text-green-800',
+                                                        'delivered' => 'bg-gray-100 text-gray-800',
+                                                        'cancelled' => 'bg-red-100 text-red-800'
+                                                    ];
+                                                    echo $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-800';
+                                                    ?>">
+                                                    <?= ucfirst($order['status']) ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <a href="orders.php" class="text-brand-yellow hover:text-brand-amber font-medium transition-colors">View All Orders →</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-            <!-- Recent Activity Section -->
-            <div class="grid lg:grid-cols-2 gap-8">
-                <!-- Recent Orders -->
-                <div class="bg-white rounded-lg shadow-md">
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">🛒 Recent Orders</h3>
-                    </div>
-                    <div class="p-6">
-                        <?php if (empty($recent_orders)): ?>
-                            <p class="text-gray-500 text-center py-4">No orders yet</p>
-                        <?php else: ?>
-                            <div class="space-y-4">
-                                <?php foreach ($recent_orders as $order): ?>
-                                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                                        <div>
-                                            <p class="font-medium text-gray-900">Order #<?= $order['id'] ?></p>
-                                            <p class="text-sm text-gray-500"><?= htmlspecialchars($order['full_name']) ?></p>
-                                            <p class="text-xs text-gray-400"><?= date('M j, g:i A', strtotime($order['created_at'])) ?></p>
+                    <!-- Recent Reservations -->
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div class="bg-gradient-to-r from-brand-yellow to-brand-amber px-6 py-4">
+                            <h3 class="text-white font-semibold text-lg flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1V8a1 1 0 011-1h3z"></path>
+                                </svg>
+                                Recent Reservations
+                            </h3>
+                        </div>
+                        <div class="p-6">
+                            <?php if (empty($recent_reservations)): ?>
+                                <p class="text-gray-500 text-center py-4">No reservations yet</p>
+                            <?php else: ?>
+                                <div class="space-y-4">
+                                    <?php foreach ($recent_reservations as $reservation): ?>
+                                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                                            <div>
+                                                <p class="font-semibold text-gray-900"><?= htmlspecialchars($reservation['name']) ?></p>
+                                                <p class="text-sm text-gray-500"><?= date('M j, Y', strtotime($reservation['date'])) ?> at <?= date('g:i A', strtotime($reservation['time'])) ?></p>
+                                                <p class="text-xs text-gray-400"><?= $reservation['guests'] ?> guests</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                                    <?php
+                                                    $status_colors = [
+                                                        'pending' => 'bg-yellow-100 text-yellow-800',
+                                                        'confirmed' => 'bg-green-100 text-green-800',
+                                                        'cancelled' => 'bg-red-100 text-red-800'
+                                                    ];
+                                                    echo $status_colors[$reservation['status']] ?? 'bg-gray-100 text-gray-800';
+                                                    ?>">
+                                                    <?= ucfirst($reservation['status']) ?>
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div class="text-right">
-                                            <p class="font-semibold text-gray-900">$<?= number_format($order['total_amount'], 2) ?></p>
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                                                <?php
-                                                $status_colors = [
-                                                    'pending' => 'bg-yellow-100 text-yellow-800',
-                                                    'confirmed' => 'bg-blue-100 text-blue-800',
-                                                    'preparing' => 'bg-purple-100 text-purple-800',
-                                                    'ready' => 'bg-green-100 text-green-800',
-                                                    'delivered' => 'bg-gray-100 text-gray-800',
-                                                    'cancelled' => 'bg-red-100 text-red-800'
-                                                ];
-                                                echo $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-800';
-                                                ?>">
-                                                <?= ucfirst($order['status']) ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="mt-4 text-center">
-                                <a href="orders.php" class="text-brand-orange hover:text-orange-700 font-medium">View All Orders →</a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <!-- Recent Reservations -->
-                <div class="bg-white rounded-lg shadow-md">
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">📅 Recent Reservations</h3>
-                    </div>
-                    <div class="p-6">
-                        <?php if (empty($recent_reservations)): ?>
-                            <p class="text-gray-500 text-center py-4">No reservations yet</p>
-                        <?php else: ?>
-                            <div class="space-y-4">
-                                <?php foreach ($recent_reservations as $reservation): ?>
-                                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                                        <div>
-                                            <p class="font-medium text-gray-900"><?= htmlspecialchars($reservation['name']) ?></p>
-                                            <p class="text-sm text-gray-500"><?= date('M j, Y', strtotime($reservation['date'])) ?> at <?= date('g:i A', strtotime($reservation['time'])) ?></p>
-                                            <p class="text-xs text-gray-400"><?= $reservation['guests'] ?> guests</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                                                <?php
-                                                $status_colors = [
-                                                    'pending' => 'bg-yellow-100 text-yellow-800',
-                                                    'confirmed' => 'bg-green-100 text-green-800',
-                                                    'cancelled' => 'bg-red-100 text-red-800'
-                                                ];
-                                                echo $status_colors[$reservation['status']] ?? 'bg-gray-100 text-gray-800';
-                                                ?>">
-                                                <?= ucfirst($reservation['status']) ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="mt-4 text-center">
-                                <a href="reservations.php" class="text-brand-orange hover:text-orange-700 font-medium">View All Reservations →</a>
-                            </div>
-                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <a href="reservations.php" class="text-brand-yellow hover:text-brand-amber font-medium transition-colors">View All Reservations →</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -477,8 +565,8 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                 datasets: [{
                     label: 'Revenue ($)',
                     data: monthlyData.map(item => parseFloat(item.revenue || 0)),
-                    borderColor: '#FF6B35',
-                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    borderColor: '#F59E0B',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     tension: 0.4,
                     fill: true
                 }]
@@ -495,7 +583,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return ' + value.toLocaleString();
+                                return '$' + value.toLocaleString();
                             }
                         }
                     }
@@ -508,9 +596,9 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
             location.reload();
         }, 300000);
 
-        // Add hover effects to cards
+        // Enhanced interactions
         document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.bg-gradient-to-r');
+            const cards = document.querySelectorAll('.gradient-card, .hover-lift');
             cards.forEach(card => {
                 card.addEventListener('mouseenter', function() {
                     this.style.transform = 'translateY(-2px)';
@@ -525,7 +613,6 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
         // Add click-to-copy functionality for order IDs
         function copyOrderId(orderId) {
             navigator.clipboard.writeText('Order #' + orderId).then(function() {
-                // Show temporary success message
                 const toast = document.createElement('div');
                 toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                 toast.textContent = 'Order ID copied to clipboard!';
