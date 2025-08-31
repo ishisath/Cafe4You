@@ -122,13 +122,23 @@ if (isLoggedIn()) {
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .hero-bg {
-            background-image: url('images/Best-Restaurants-Indianapolis.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        
+     .hero-bg {
+    background-image: url('images/Best-Restaurants-Indianapolis.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative; /* required for overlay */
+}
+
+/* Subtle black overlay */
+.hero-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.25); /* 25% black */
+    z-index: 0;
+}
+
         @media (max-width: 768px) {
             .hero-bg {
                 background-attachment: scroll;
@@ -184,20 +194,25 @@ if (isLoggedIn()) {
         <div class="absolute top-32 right-20 w-4 h-4 bg-yellow-400/30 rounded-full"></div>
         <div class="absolute bottom-20 left-1/4 w-3 h-3 bg-white/30 rounded-full"></div>
         
-        <div class="max-w-7xl mx-auto px-6 relative z-10">
-            <div class="grid lg:grid-cols-2 gap-12 items-center">
-                <!-- Left Content -->
-                <div class="space-y-6">
-                    <div class="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-4">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1V8a1 1 0 011-1h3z"></path>
-                        </svg>
-                        <span>Book Your Table</span>
-                    </div>
-                    <h1 class="text-5xl lg:text-6xl font-bold mb-4">Reserve Your <span class="text-yellow-300">Perfect</span> Table</h1>
-                    <p class="text-xl text-white/90 leading-relaxed">
-                        Secure your spot for an unforgettable dining experience. We'll make sure everything is perfect for your visit.
-                    </p>
+            <div class="max-w-7xl mx-auto px-6 relative z-10">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <!-- Left Content -->
+            <div class="space-y-6">
+                <div class="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-4 shadow-lg">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1V8a1 1 0 011-1h3z"></path>
+                    </svg>
+                    <span>Book Your Table</span>
+                </div>
+                
+                <h1 class="text-5xl lg:text-6xl font-extrabold mb-4 drop-shadow-2xl 
+                           transition duration-300 hover:scale-105 hover:drop-shadow-[0_0_25px_rgba(255,223,0,0.9)]">
+                    Reserve Your <span class="text-yellow-300">Perfect</span> Table
+                </h1>
+                
+                <p class="text-xl text-white/95 leading-relaxed drop-shadow-md">
+                    Secure your spot for an unforgettable dining experience. We'll make sure everything is perfect for your visit.
+                </p>
                     
                     <!-- Features -->
                     <div class="grid grid-cols-2 gap-4 pt-6">

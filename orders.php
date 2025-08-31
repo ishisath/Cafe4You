@@ -135,28 +135,37 @@ if (isset($_GET['order_id'])) {
         </div>
     </nav>
 
-    <!-- Page Header -->
-    <section class="relative bg-gradient-to-br from-brand-yellow via-brand-amber to-yellow-600 text-white py-16 overflow-hidden">
-        <div class="hero-pattern absolute inset-0 opacity-20"></div>
-        <div class="absolute top-10 left-10 w-6 h-6 bg-white/20 rounded-full animate-bounce"></div>
-        <div class="absolute top-32 right-20 w-4 h-4 bg-yellow-400/30 rounded-full"></div>
-        <div class="absolute bottom-20 left-1/4 w-3 h-3 bg-white/30 rounded-full"></div>
-        
-        <div class="max-w-7xl mx-auto px-6 relative z-10">
-            <div class="text-center">
-                <div class="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-4">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                    </svg>
-                    <span>Order History</span>
-                </div>
-                <h1 class="text-5xl lg:text-6xl font-bold mb-4">Your <span class="text-yellow-300">Orders</span></h1>
-                <p class="text-xl text-white/90 leading-relaxed max-w-2xl mx-auto">
-                    Track your delicious orders and explore your dining journey with us
-                </p>
-            </div>
+<!-- Page Header -->
+<section class="relative bg-[url('images/Pizza.jpg')] bg-cover bg-center text-white py-16 overflow-hidden">
+    <!-- Subtle Black Overlay -->
+    <div class="absolute inset-0 bg-black/25 z-0"></div>
+
+    <!-- Decorative floating elements -->
+    <div class="absolute top-10 left-10 w-6 h-6 bg-white/20 rounded-full animate-bounce"></div>
+    <div class="absolute top-32 right-20 w-4 h-4 bg-yellow-400/30 rounded-full"></div>
+    <div class="absolute bottom-20 left-1/4 w-3 h-3 bg-white/30 rounded-full"></div>
+
+    <!-- Content -->
+    <div class="max-w-7xl mx-auto px-6 relative z-10 text-center">
+        <div class="inline-flex items-center bg-white/30 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-4 shadow-lg">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            <span>Order History</span>
         </div>
-    </section>
+
+        <h1 class="text-5xl lg:text-6xl font-extrabold mb-4 drop-shadow-2xl transition duration-300 
+                   hover:scale-105 hover:drop-shadow-[0_0_25px_rgba(255,223,0,0.9)]">
+            Your <span class="text-yellow-300">Orders</span>
+        </h1>
+        <p class="text-xl text-white/95 leading-relaxed drop-shadow-md max-w-2xl mx-auto">
+            Track your delicious orders and explore your dining journey with us
+        </p>
+    </div>
+</section>
+
+
 
     <!-- Orders Content -->
     <section class="py-20 bg-white">

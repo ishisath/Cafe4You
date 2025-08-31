@@ -154,28 +154,34 @@ $total = array_sum(array_column($cart_items, 'subtotal'));
         </div>
     </nav>
 
-    <!-- Page Header -->
-    <section class="relative bg-gradient-to-br from-brand-yellow via-brand-amber to-yellow-600 text-white py-16 overflow-hidden">
-        <div class="hero-pattern absolute inset-0 opacity-20"></div>
-        <div class="absolute top-10 left-10 w-6 h-6 bg-white/20 rounded-full animate-bounce"></div>
-        <div class="absolute top-32 right-20 w-4 h-4 bg-yellow-300/30 rounded-full"></div>
-        <div class="absolute bottom-20 left-1/4 w-3 h-3 bg-white/30 rounded-full"></div>
-        
-        <div class="max-w-7xl mx-auto px-6 relative z-10">
-            <div class="text-center">
-                <div class="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-4">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10a2 2 0 11-4 0 2 2 0 014 0zm12 0a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <span>Shopping Cart</span>
-                </div>
-                <h1 class="text-5xl lg:text-6xl font-bold mb-4">Your <span class="text-yellow-200">Selections</span></h1>
-                <p class="text-xl text-white/90 leading-relaxed max-w-2xl mx-auto">
-                    Review your delicious choices and proceed to checkout when ready
-                </p>
-            </div>
+<!-- Page Header -->
+<section class="relative bg-[url('images/top-10.webp')] bg-cover bg-center text-white py-20 overflow-hidden">
+    <!-- Dark Overlay -->
+    <div class="absolute inset-0 bg-black/60"></div>
+
+    <!-- Floating elements (kept from your original) -->
+    <div class="absolute top-10 left-10 w-6 h-6 bg-white/20 rounded-full animate-bounce"></div>
+    <div class="absolute top-32 right-20 w-4 h-4 bg-yellow-300/30 rounded-full"></div>
+    <div class="absolute bottom-20 left-1/4 w-3 h-3 bg-white/30 rounded-full"></div>
+
+    <!-- Content -->
+    <div class="max-w-7xl mx-auto px-6 relative z-10 text-center">
+        <div class="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium mb-6 shadow-lg">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10a2 2 0 11-4 0 2 2 0 014 0zm12 0a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span>Shopping Cart</span>
         </div>
-    </section>
+
+        <h1 class="text-5xl lg:text-6xl font-extrabold mb-4 drop-shadow-2xl">
+            Your <span class="text-yellow-300">Selections</span>
+        </h1>
+        <p class="text-xl text-white/95 leading-relaxed max-w-2xl mx-auto drop-shadow-md">
+            Review your delicious choices and proceed to checkout when ready
+        </p>
+    </div>
+</section>
+
 
     <!-- Cart Content -->
     <section class="py-20 bg-white">
