@@ -218,7 +218,7 @@ if (isset($_GET['order_id'])) {
                                 <!-- Order Status & Total -->
                                 <div class="flex items-center space-x-6">
                                     <div class="text-right">
-                                        <div class="text-2xl font-bold text-gray-800">$<?= number_format($order['total_amount'], 2) ?></div>
+                                        <div class="text-2xl font-bold text-gray-800">Rs<?= number_format($order['total_amount'], 2) ?></div>
                                         <div class="text-sm text-gray-500">Total Amount</div>
                                     </div>
                                     

@@ -433,7 +433,7 @@ $featured_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <!-- Right Content - Restaurant Image -->
                 <div class="relative">
                     <div class="bg-white rounded-3xl p-8 card-shadow hover-lift">
-                        <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500&h=400&fit=crop&crop=center"
+                        <img src="images/for small squre.jpeg"
                              alt="Cafe For You Interior"
                              class="w-full h-96 object-cover rounded-2xl">
                     </div>

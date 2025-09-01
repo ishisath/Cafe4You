@@ -184,7 +184,7 @@ function getStatusIcon($status) {
         }
 
         .hero-bg {
-            background-image: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&h=800&fit=crop&crop=center');
+            background-image: url('images/The20deco20de81cor20CIRQA20.webp');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -309,7 +309,7 @@ function getStatusIcon($status) {
                 <!-- Right Content - Restaurant Interior Image -->
                 <div class="relative">
                     <div class="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
-                        <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500&h=400&fit=crop&crop=center" 
+                        <img src="images/for small squre.jpeg" 
                              alt="Restaurant Interior" 
                              class="w-full h-80 object-cover rounded-2xl">
                     </div>

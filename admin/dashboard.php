@@ -316,7 +316,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                             </svg>
                         </div>
-                        <div class="text-3xl font-bold mb-2">$<?= number_format($stats['total_revenue'], 2) ?></div>
+                        <div class="text-3xl font-bold mb-2">Rs<?= number_format($stats['total_revenue'], 2) ?></div>
                         <div class="text-white/70 text-sm">All time</div>
                     </div>
 
@@ -329,7 +329,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                             </svg>
                         </div>
                         <div class="text-3xl font-bold mb-2"><?= number_format($stats['total_orders']) ?></div>
-                        <div class="text-white/70 text-sm">Average: $<?= number_format($stats['avg_order_value'], 2) ?></div>
+                        <div class="text-white/70 text-sm">Average: Rs<?= number_format($stats['avg_order_value'], 2) ?></div>
                     </div>
 
                     <!-- Total Customers Card -->
@@ -361,7 +361,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="grid md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
                         <h3 class="text-sm font-medium text-gray-500">Today's Revenue</h3>
-                        <p class="text-2xl font-bold text-gray-900">$<?= number_format($stats['today_revenue'], 2) ?></p>
+                        <p class="text-2xl font-bold text-gray-900">Rs<?= number_format($stats['today_revenue'], 2) ?></p>
                     </div>
                     <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
                         <h3 class="text-sm font-medium text-gray-500">Today's Orders</h3>
@@ -475,7 +475,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <p class="text-xs text-gray-400"><?= date('M j, g:i A', strtotime($order['created_at'])) ?></p>
                                             </div>
                                             <div class="text-right">
-                                                <p class="font-bold text-gray-900">$<?= number_format($order['total_amount'], 2) ?></p>
+                                                <p class="font-bold text-gray-900">Rs<?= number_format($order['total_amount'], 2) ?></p>
                                                 <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
                                                     <?php
                                                     $status_colors = [
@@ -563,7 +563,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 }),
                 datasets: [{
-                    label: 'Revenue ($)',
+                    label: 'Revenue (Rs)',
                     data: monthlyData.map(item => parseFloat(item.revenue || 0)),
                     borderColor: '#F59E0B',
                     backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -583,7 +583,7 @@ $monthly_data = $monthly_revenue_stmt->fetchAll(PDO::FETCH_ASSOC);
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return 'Rs' + value.toLocaleString();
                             }
                         }
                     }

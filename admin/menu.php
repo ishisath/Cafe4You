@@ -400,7 +400,7 @@ if (isset($_GET['edit'])) {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                             </svg>
                         </div>
-                        <div class="text-3xl font-bold mb-2">$<?= number_format($stats['avg_price'], 2) ?></div>
+                        <div class="text-3xl font-bold mb-2">Rs<?= number_format($stats['avg_price'], 2) ?></div>
                         <div class="text-white/70 text-sm">Per menu item</div>
                     </div>
                 </div>
@@ -460,7 +460,7 @@ if (isset($_GET['edit'])) {
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Price *</label>
                                     <div class="relative">
-                                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-lg">$</span>
+                                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-lg">Rs</span>
                                         <input type="number" name="price" step="0.01" min="0" required 
                                                value="<?= $edit_item['price'] ?? '' ?>"
                                                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-yellow focus:border-transparent">
@@ -630,7 +630,7 @@ if (isset($_GET['edit'])) {
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-gray-900">$<?= number_format($item['price'], 2) ?></div>
+                                            <div class="text-sm font-bold text-gray-900">Rs<?= number_format($item['price'], 2) ?></div>
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap">
