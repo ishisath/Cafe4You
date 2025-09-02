@@ -148,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="flex justify-between items-center py-2 border-b border-gray-200">
                             <div>
                                 <h4 class="font-medium"><?= htmlspecialchars($item['name']) ?></h4>
-                                <p class="text-sm text-gray-600">Qty: <?= $item['quantity'] ?> × $<?= number_format($item['price'], 2) ?></p>
+                                <p class="text-sm text-gray-600">Qty: <?= $item['quantity'] ?> × Rs<?= number_format($item['price'], 2) ?></p>
                             </div>
-                            <span class="font-semibold">$<?= number_format($item['subtotal'], 2) ?></span>
+                            <span class="font-semibold">Rs<?= number_format($item['subtotal'], 2) ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -158,15 +158,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="space-y-2 border-t border-gray-200 pt-4">
                     <div class="flex justify-between">
                         <span>Subtotal</span>
-                        <span>$<?= number_format($subtotal, 2) ?></span>
+                        <span>Rs<?= number_format($subtotal, 2) ?></span>
                     </div>
                     <div class="flex justify-between">
                         <span>Tax (8%)</span>
-                        <span>$<?= number_format($tax, 2) ?></span>
+                        <span>Rs<?= number_format($tax, 2) ?></span>
                     </div>
                     <div class="flex justify-between font-semibold text-lg border-t border-gray-200 pt-2">
                         <span>Total</span>
-                        <span>$<?= number_format($total, 2) ?></span>
+                        <span>Rs<?= number_format($total, 2) ?></span>
                     </div>
                 </div>
             </div>
