@@ -40,6 +40,8 @@ if(!$r){ http_response_code(404); echo "Reservation not found."; exit; }
         <div class="col-md-6">
           <div class="mb-2"><strong>Date:</strong> <?= h($r['date']) ?></div>
           <div class="mb-2"><strong>Time:</strong> <?= h($r['time']) ?></div>
+          <div class="mb-2"><strong>Table:</strong> <?= h($r['table_number'] ?? '') ?></div>
+
           <div class="mb-2"><strong>Guests:</strong> <?= (int)$r['guests'] ?></div>
         </div>
       </div>

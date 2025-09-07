@@ -189,6 +189,7 @@ $total = array_sum(array_column($cart_items, 'subtotal'));
             <?php displayMessage(); ?>
             
             <?php if (empty($cart_items)): ?>
+                
                 <!-- Empty Cart State -->
                 <div class="text-center py-20">
                     <div class="bg-white rounded-3xl card-shadow p-12 max-w-md mx-auto hover-lift">

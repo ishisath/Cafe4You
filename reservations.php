@@ -38,15 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $time = sanitize($_POST['time']);
         $guests = (int)$_POST['guests'];
         $message = sanitize($_POST['message']);
+        $table_number = isset($_POST['table_number']) ? (int)$_POST['table_number'] : 0;
+
         $user_id = isLoggedIn() ? $_SESSION['user_id'] : null;
         
         $errors = [];
         
+        // Basic validation
         if (empty($name)) $errors[] = 'Name is required';
         if (empty($email)) $errors[] = 'Email is required';
         if (empty($phone)) $errors[] = 'Phone is required';
         if (empty($date)) $errors[] = 'Date is required';
         if (empty($time)) $errors[] = 'Time is required';
+        if ($table_number < 1 || $table_number > 15) $errors[] = 'Please select a valid table (1-15)';
         if ($guests < 1 || $guests > 20) $errors[] = 'Number of guests must be between 1 and 20';
         
         // Check if date is not in the past
@@ -54,12 +58,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Reservation date cannot be in the past';
         }
         
+        // Check table availability BEFORE attempting to insert
         if (empty($errors)) {
-            $query = "INSERT INTO reservations (user_id, name, email, phone, date, time, guests, message, status, created_at) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+            $checkSql = "SELECT COUNT(*) FROM reservations 
+                         WHERE date = ? AND time = ? AND table_number = ? AND status != 'cancelled'";
+            $checkStmt = $db->prepare($checkSql);
+            $checkStmt->execute([$date, $time, $table_number]);
+            
+            if ($checkStmt->fetchColumn() > 0) {
+                $errors[] = "Sorry, Table {$table_number} is already booked at {$time} on {$date}. Please select a different table or time.";
+            }
+        }
+        
+        // Only proceed with insertion if no errors
+        if (empty($errors)) {
+            $query = "INSERT INTO reservations (user_id, name, email, phone, date, time, table_number, guests, message, status, created_at) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
             $stmt = $db->prepare($query);
             
-            if ($stmt->execute([$user_id, $name, $email, $phone, $date, $time, $guests, $message])) {
+            if ($stmt->execute([$user_id, $name, $email, $phone, $date, $time, $table_number, $guests, $message])) {
                 showMessage('Reservation request submitted successfully! We will contact you shortly to confirm.');
                 // Clear form data
                 $_POST = [];
@@ -118,6 +135,27 @@ function getStatusIcon($status) {
         default:
             return '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     }
+}
+
+// Function to get available tables for a specific date and time
+function getAvailableTables($db, $date, $time, $excludeReservationId = null) {
+    $sql = "SELECT table_number FROM reservations 
+            WHERE date = ? AND time = ? AND status != 'cancelled'";
+    $params = [$date, $time];
+    
+    if ($excludeReservationId) {
+        $sql .= " AND id != ?";
+        $params[] = $excludeReservationId;
+    }
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $bookedTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    $allTables = range(1, 15);
+    $availableTables = array_diff($allTables, $bookedTables);
+    
+    return $availableTables;
 }
 ?>
 
@@ -203,6 +241,18 @@ function getStatusIcon($status) {
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        .table-occupied {
+            background-color: #fee2e2 !important;
+            color: #dc2626 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .table-available {
+            background-color: #f0fdf4 !important;
+            color: #166534 !important;
         }
     </style>
 </head>
@@ -332,7 +382,7 @@ function getStatusIcon($status) {
                     <!-- Table capacity indicator -->
                     <div class="absolute -top-4 -right-4 bg-white rounded-2xl p-3 shadow-xl">
                         <div class="text-center">
-                            <div class="text-lg font-bold text-brand-yellow">50+</div>
+                            <div class="text-lg font-bold text-brand-yellow">15</div>
                             <div class="text-xs text-gray-600">Tables</div>
                         </div>
                     </div>
@@ -360,6 +410,7 @@ function getStatusIcon($status) {
                                 <div class="flex flex-wrap items-center gap-4 mb-4">
                                     <div class="flex items-center space-x-2">
                                         <span class="text-2xl font-bold text-gray-800">#<?= $reservation['id'] ?></span>
+                                        <span class="text-sm text-gray-600">Table <?= $reservation['table_number'] ?></span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="<?= getStatusColor($reservation['status']) ?> px-3 py-1 rounded-full text-xs font-semibold border flex items-center space-x-1">
@@ -523,32 +574,41 @@ function getStatusIcon($status) {
                                 </div>
                             </div>
                             
-                            <div class="grid md:grid-cols-2 gap-6">
+                            <div class="grid md:grid-cols-3 gap-6">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-3">Preferred Date *</label>
-                                    <input type="date" name="date" required 
+                                    <input type="date" name="date" required
                                            value="<?= htmlspecialchars($_POST['date'] ?? '') ?>"
                                            min="<?= date('Y-m-d') ?>"
-                                           class="form-input w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none bg-gray-50">
+                                           class="form-input w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none bg-gray-50"
+                                           onchange="checkTableAvailability()">
                                 </div>
                                 
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-3">Preferred Time *</label>
-                                    <select name="time" required 
+                                    <input type="time" name="time" required
+                                           value="<?= htmlspecialchars($_POST['time'] ?? '') ?>"
+                                           class="form-input w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none bg-gray-50"
+                                           onchange="checkTableAvailability()">
+                                </div>
+                                
+                                <!-- Select Table -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Select Table *</label>
+                                    <select name="table_number" required id="table_select"
                                             class="form-input w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none bg-gray-50">
-                                        <option value="">Select Time</option>
-                                        <?php
-                                        $times = ['11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'];
-                                        foreach ($times as $time):
-                                        ?>
-                                            <option value="<?= $time ?>" <?= (isset($_POST['time']) && $_POST['time'] == $time) ? 'selected' : '' ?>>
-                                                <?= date('g:i A', strtotime($time)) ?>
+                                        <option value="">Choose a table...</option>
+                                        <?php for ($i = 1; $i <= 15; $i++): ?>
+                                            <option value="<?= $i ?>"
+                                              <?= (isset($_POST['table_number']) && (int)$_POST['table_number'] === $i) ? 'selected' : '' ?>>
+                                              Table <?= $i ?>
                                             </option>
-                                        <?php endforeach; ?>
+                                        <?php endfor; ?>
                                     </select>
+                                    <div id="availability_message" class="mt-2 text-sm"></div>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-3">Special Requests</label>
                                 <textarea name="message" rows="4" 
@@ -648,6 +708,10 @@ function getStatusIcon($status) {
                             <li class="flex items-start space-x-3">
                                 <div class="w-1.5 h-1.5 bg-brand-yellow rounded-full mt-2"></div>
                                 <span>Large parties (8+ guests) may require a deposit</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <div class="w-1.5 h-1.5 bg-brand-yellow rounded-full mt-2"></div>
+                                <span>Each table can only be booked once per time slot</span>
                             </li>
                         </ul>
                     </div>
@@ -757,122 +821,3 @@ function getStatusIcon($status) {
                         <li class="flex items-center space-x-3">
                             <svg class="w-5 h-5 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                            </svg>
-                            <span>(555) 123-4567</span>
-                        </div>
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-brand-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                            </svg>
-                            <span>info@cafeforyou.com</span>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="space-y-4">
-                    <h4 class="text-lg font-semibold">Hours</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li class="flex justify-between">
-                            <span>Monday - Thursday:</span>
-                            <span class="text-white">11am - 10pm</span>
-                        </li>
-                        <li class="flex justify-between">
-                            <span>Friday - Saturday:</span>
-                            <span class="text-white">11am - 11pm</span>
-                        </li>
-                        <li class="flex justify-between">
-                            <span>Sunday:</span>
-                            <span class="text-white">12pm - 9pm</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="border-t border-gray-800 pt-8">
-                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                    <div class="text-gray-400 text-center md:text-left">
-                        <p>&copy; 2025 Cafe For You. All rights reserved.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        // Add smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Add scroll effect for navbar
-        window.addEventListener('scroll', function() {
-            const nav = document.querySelector('nav');
-            if (window.scrollY > 100) {
-                nav.classList.add('bg-white/95');
-            } else {
-                nav.classList.remove('bg-white/95');
-            }
-        });
-
-        // Intersection Observer for animations
-        document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, observerOptions);
-
-            // Observe elements for animation
-            document.querySelectorAll('.hover-lift').forEach(el => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
-        });
-
-        // Form validation and enhancement
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
-            const inputs = form.querySelectorAll('input, select, textarea');
-            
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                
-                input.addEventListener('blur', function() {
-                    this.parentElement.classList.remove('focused');
-                });
-            });
-        });
-
-        // Auto-hide success messages
-        document.addEventListener('DOMContentLoaded', function() {
-            const messages = document.querySelectorAll('.fade-in');
-            messages.forEach(message => {
-                setTimeout(() => {
-                    message.style.opacity = '1';
-                }, 100);
-            });
-        });
-    </script>
-</body>
-</html>

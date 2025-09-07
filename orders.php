@@ -299,7 +299,7 @@ if (isset($_GET['order_id'])) {
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Total:</span>
-                                        <span class="font-bold text-gray-800">$<?= number_format($order_details[0]['total_amount'], 2) ?></span>
+                                        <span class="font-bold text-gray-800">Rs<?= number_format($order_details[0]['total_amount'], 2) ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -361,7 +361,7 @@ if (isset($_GET['order_id'])) {
                                                 <span class="text-gray-600 text-sm block">Quantity: <?= $item['quantity'] ?></span>
                                             </div>
                                         </div>
-                                        <span class="font-bold text-gray-800">$<?= number_format($item['price'] * $item['quantity'], 2) ?></span>
+                                        <span class="font-bold text-gray-800">Rs<?= number_format($item['price'] * $item['quantity'], 2) ?></span>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -369,7 +369,7 @@ if (isset($_GET['order_id'])) {
                             <div class="border-t border-gray-200 mt-4 pt-4">
                                 <div class="flex justify-between items-center p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border-2 border-brand-yellow/20">
                                     <span class="text-lg font-bold text-gray-800">Total Amount</span>
-                                    <span class="text-2xl font-bold text-brand-amber">$<?= number_format($order_details[0]['total_amount'], 2) ?></span>
+                                    <span class="text-2xl font-bold text-brand-amber">Rs<?= number_format($order_details[0]['total_amount'], 2) ?></span>
                                 </div>
                             </div>
                         </div>
