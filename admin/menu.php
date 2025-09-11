@@ -9,6 +9,28 @@ requireAdmin();
 $database = new Database();
 $db = $database->getConnection();
 
+/* ---------- helpers for datetime-local <-> MySQL DATETIME ---------- */
+function to_mysql_dt(?string $local){
+   if(!$local){ return null; }
+   $local = trim($local);
+   if($local === '') return null;
+
+   if (strpos($local, 'T') !== false) {
+      $local = str_replace('T', ' ', $local);
+      if (preg_match('/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/', $local)) {
+         $local .= ':00';
+      }
+   }
+   return $local;
+}
+
+function to_input_dt(?string $mysql){
+   if(!$mysql){ return ''; }
+   $ts = strtotime($mysql);
+   if($ts === false){ return ''; }
+   return date('Y-m-d\TH:i', $ts);
+}
+
 // Function to handle image upload
 function uploadMenuImage($file) {
     $uploadDir = '../uploads/menu/';
@@ -139,6 +161,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $item_stmt->execute([$id]);
         $item = $item_stmt->fetch(PDO::FETCH_ASSOC);
         
+        // Delete associated promotions first
+        $delete_promos = $db->prepare("DELETE FROM menu_promotions WHERE menu_item_id = ?");
+        $delete_promos->execute([$id]);
+        
         $query = "DELETE FROM menu_items WHERE id = ?";
         $stmt = $db->prepare($query);
         if ($stmt->execute([$id])) {
@@ -150,6 +176,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             showMessage('Failed to delete menu item', 'error');
         }
+
+    /* =========================================
+       PROMOTION: Create/Update (Enhanced for Discounts)
+    ========================================= */
+    } elseif(isset($_POST['save_promo'])){
+        $promo_id         = isset($_POST['promo_id']) ? (int)$_POST['promo_id'] : 0;
+        $menu_item_id     = isset($_POST['menu_item_id']) ? (int)$_POST['menu_item_id'] : 0;
+        $promo_price      = (isset($_POST['promo_price']) && $_POST['promo_price'] !== '') ? (float)$_POST['promo_price'] : null;
+        $discount_percent = (isset($_POST['discount_percent']) && $_POST['discount_percent'] !== '') ? (float)$_POST['discount_percent'] : null;
+
+        $label     = sanitize($_POST['label'] ?? '');
+        if ($label === '') $label = 'Limited Offer';
+        $starts_at = to_mysql_dt($_POST['starts_at'] ?? null);
+        $ends_at   = to_mysql_dt($_POST['ends_at'] ?? null);
+        $active    = isset($_POST['active']) ? 1 : 0;
+
+        $errs = [];
+        if($menu_item_id <= 0){ $errs[] = 'Choose a valid menu item.'; }
+        if($promo_price === null && $discount_percent === null){ $errs[] = 'Set either Promo Price or Discount %.'; }
+        if($promo_price !== null && $promo_price < 0){ $errs[] = 'Promo price must be >= 0.'; }
+        if($discount_percent !== null && ($discount_percent < 0 || $discount_percent > 95)){ $errs[] = 'Discount % must be between 0 and 95.'; }
+
+        // Enhanced: If both are provided, prioritize discount percentage and clear promo price
+        if($promo_price !== null && $discount_percent !== null) {
+            showMessage('Using discount percentage. Promo price has been cleared to avoid conflicts.', 'warning');
+            $promo_price = null;
+        }
+
+        if(empty($errs)){
+            if($promo_id > 0){
+                $sql = "UPDATE menu_promotions
+                        SET menu_item_id=?, promo_price=?, discount_percent=?, label=?, starts_at=?, ends_at=?, active=?
+                        WHERE id=?";
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$menu_item_id, $promo_price, $discount_percent, $label, $starts_at, $ends_at, $active, $promo_id]);
+                $promo_type = $discount_percent !== null ? 'discount' : 'fixed price';
+                showMessage("Promotion updated successfully! Using {$promo_type} pricing.");
+            }else{
+                $chk = $db->prepare("SELECT id FROM menu_promotions WHERE menu_item_id=? ORDER BY id DESC LIMIT 1");
+                $chk->execute([$menu_item_id]);
+                if($chk->rowCount()){
+                    $row = $chk->fetch(PDO::FETCH_ASSOC);
+                    $sql = "UPDATE menu_promotions
+                            SET promo_price=?, discount_percent=?, label=?, starts_at=?, ends_at=?, active=?
+                            WHERE id=?";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute([$promo_price, $discount_percent, $label, $starts_at, $ends_at, $active, (int)$row['id']]);
+                    $promo_type = $discount_percent !== null ? 'discount' : 'fixed price';
+                    showMessage("Promotion updated successfully! Using {$promo_type} pricing.");
+                }else{
+                    $sql = "INSERT INTO menu_promotions (menu_item_id, promo_price, discount_percent, label, starts_at, ends_at, active)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute([$menu_item_id, $promo_price, $discount_percent, $label, $starts_at, $ends_at, $active]);
+                    $promo_type = $discount_percent !== null ? 'discount' : 'fixed price';
+                    showMessage("Promotion created successfully! Using {$promo_type} pricing.");
+                }
+            }
+        }else{
+            showMessage(implode(' ', $errs), 'error');
+        }
+
+        header('location:menu.php#m'.$menu_item_id);
+        exit;
+
+    /* =========================================
+       PROMOTION: Delete (CRUD)
+    ========================================= */
+    } elseif(isset($_GET['delete_promo'])){
+        $del_mid     = isset($_GET['mid']) ? (int)$_GET['mid'] : 0;
+        $del_promoid = (int)$_GET['delete_promo'];
+        $stmt = $db->prepare("DELETE FROM menu_promotions WHERE id = ?");
+        $stmt->execute([$del_promoid]);
+        showMessage('Promotion deleted successfully!');
+        header('location:menu.php#m'.$del_mid);
+        exit;
     }
 }
 
@@ -515,6 +617,30 @@ if (isset($_GET['edit'])) {
             border-color: rgba(255, 199, 40, 0.6);
         }
 
+        .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+        /* Enhanced discount field styling */
+        .discount-field {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05));
+            border: 2px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .discount-field:focus {
+            border-color: rgba(34, 197, 94, 0.6);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .promo-price-field {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .promo-price-field:focus {
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
         @media (max-width: 768px) {
             .glass-card:hover {
                 transform: none;
@@ -672,7 +798,7 @@ if (isset($_GET['edit'])) {
                             </div>
                             <div class="animate-slide-up">
                                 <h1 class="text-4xl font-black golden-text mb-2">Menu Management</h1>
-                                <p class="text-warm-gray text-xl font-medium">Create and manage delicious menu items for your restaurant</p>
+                                <p class="text-warm-gray text-xl font-medium">Create and manage delicious menu items with discount promotions</p>
                             </div>
                         </div>
                         <button onclick="showAddForm()" class="bg-gradient-to-r from-golden-500 to-golden-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 shimmer-bg">
@@ -939,7 +1065,7 @@ if (isset($_GET['edit'])) {
                                 </div>
                                 <div>
                                     <h3 class="text-white font-black text-2xl mb-2">Menu Items</h3>
-                                    <p class="text-white/80 text-lg font-medium">Manage your delicious offerings</p>
+                                    <p class="text-white/80 text-lg font-medium">Manage your delicious offerings with discount promotions</p>
                                 </div>
                             </div>
                             <div class="text-white/90 text-lg">
@@ -966,15 +1092,46 @@ if (isset($_GET['edit'])) {
                         </div>
                         <?php else: ?>
                         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-                            <?php foreach ($menu_items as $item): ?>
+                            <?php foreach ($menu_items as $item): 
+                                $mid = (int)$item['id'];
+
+                                // Load latest promo (if any)
+                                $promo = null;
+                                $getPromo = $db->prepare("SELECT * FROM menu_promotions WHERE menu_item_id = ? ORDER BY id DESC LIMIT 1");
+                                $getPromo->execute([$mid]);
+                                if($getPromo->rowCount()){
+                                    $promo = $getPromo->fetch(PDO::FETCH_ASSOC);
+                                }
+
+                                // Final price preview (if live)
+                                $now   = date('Y-m-d H:i:s');
+                                $base  = (float)$item['price'];
+                                $final = null; $isLive = false;
+
+                                if($promo){
+                                    $inWindow = (empty($promo['starts_at']) || $promo['starts_at'] <= $now)
+                                             && (empty($promo['ends_at'])   || $promo['ends_at']   >= $now);
+                                    if((int)$promo['active'] === 1 && $inWindow){
+                                        if($promo['promo_price'] !== null && $promo['promo_price'] !== ''){
+                                            $final = (float)$promo['promo_price'];
+                                        }elseif($promo['discount_percent'] !== null && $promo['discount_percent'] !== ''){
+                                            $final = max(0, $base * (1 - ((float)$promo['discount_percent']/100)));
+                                        }
+                                        if($final !== null && $final < $base){ $isLive = true; }
+                                    }
+                                }
+
+                                $imageSrc = $item['image'] ? '../' . $item['image'] : 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=280&fit=crop&crop=center';
+                            ?>
+
+                                <span id="m<?= $mid; ?>" class="relative -top-20 block"></span>
+
                                 <div class="menu-item-card rounded-3xl shadow-2xl overflow-hidden hover-lift">
-                                    <?php 
-                                    $imageSrc = $item['image'] ? '../' . $item['image'] : 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=280&fit=crop&crop=center';
-                                    ?>
-                                    <div class="relative">
+                                    <!-- Image Section - Fixed Height -->
+                                    <div class="relative h-64 flex-shrink-0">
                                         <img src="<?= $imageSrc ?>" 
                                              alt="<?= htmlspecialchars($item['name']) ?>" 
-                                             class="w-full h-64 object-cover"
+                                             class="w-full h-full object-cover"
                                              onerror="this.src='https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=280&fit=crop&crop=center'">
                                         
                                         <!-- Status Badge -->
@@ -995,20 +1152,57 @@ if (isset($_GET['edit'])) {
                                         <!-- Price Badge -->
                                         <div class="absolute bottom-5 right-5">
                                             <div class="bg-golden-500/95 text-white px-5 py-3 rounded-2xl backdrop-blur-sm shadow-xl">
-                                                <span class="text-lg font-black">Rs<?= number_format($item['price'], 2) ?></span>
+                                                <?php if($isLive): ?>
+                                                    <div class="text-center">
+                                                        <div class="text-sm line-through opacity-70">Rs<?= number_format($base,2); ?></div>
+                                                        <div class="text-lg font-black">Rs<?= number_format($final,2); ?></div>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="text-lg font-black">Rs<?= number_format($base, 2) ?></span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
+
+                                        <!-- Promotion Status -->
+                                        <?php if($isLive): ?>
+                                            <div class="absolute bottom-5 left-5">
+                                                <div class="bg-emerald-500/95 text-white px-4 py-2 rounded-2xl backdrop-blur-sm shadow-xl">
+                                                    <div class="text-xs font-black flex items-center gap-1">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M13 1L15.5 7.5L22 9L15.5 10.5L13 17L10.5 10.5L4 9L10.5 7.5L13 1Z"/>
+                                                        </svg>
+                                                        LIVE DISCOUNT
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php elseif($promo): ?>
+                                            <div class="absolute bottom-5 left-5">
+                                                <div class="bg-yellow-500/95 text-white px-4 py-2 rounded-2xl backdrop-blur-sm shadow-xl">
+                                                    <div class="text-xs font-black flex items-center gap-1">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M13 17H11V15H13V17M13 13H11V7H13V13Z"/>
+                                                        </svg>
+                                                        SCHEDULED
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     
-                                    <div class="p-8">
-                                        <div class="mb-6">
-                                            <h3 class="text-2xl font-black text-cafe-brown mb-3"><?= htmlspecialchars($item['name']) ?></h3>
-                                            <?php if ($item['description']): ?>
-                                            <p class="text-warm-gray text-lg line-clamp-3 font-medium"><?= htmlspecialchars($item['description']) ?></p>
-                                            <?php endif; ?>
+                                    <!-- Content Section - Flexible -->
+                                    <div class="p-8 flex-grow flex flex-col">
+                                        <!-- Title and Description - Fixed Height Container -->
+                                        <div class="mb-6 flex-grow">
+                                            <h3 class="text-2xl font-black text-cafe-brown mb-3 min-h-[3rem] line-clamp-2"><?= htmlspecialchars($item['name']) ?></h3>
+                                            <div class="min-h-[4.5rem]">
+                                                <?php if ($item['description']): ?>
+                                                <p class="text-warm-gray text-lg line-clamp-3 font-medium"><?= htmlspecialchars($item['description']) ?></p>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                         
-                                        <div class="flex space-x-4">
+                                        <!-- Action Buttons - Fixed at Bottom -->
+                                        <div class="flex space-x-4 mb-6 mt-auto">
                                             <a href="menu.php?edit=<?= $item['id'] ?>" 
                                                class="flex-1 bg-gradient-to-r from-golden-500 to-golden-600 text-white px-6 py-4 rounded-2xl font-black hover:shadow-2xl transition-all duration-300 text-center inline-flex items-center justify-center transform hover:scale-105 shimmer-bg">
                                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1027,6 +1221,173 @@ if (isset($_GET['edit'])) {
                                                 </button>
                                             </form>
                                         </div>
+                                    </div>
+
+                                    <!-- Enhanced Promotion Editor - Fixed Height -->
+                                    <div class="p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-t mt-auto">
+                                        <div class="mb-4 flex items-center justify-between">
+                                            <h4 class="text-lg font-bold text-cafe-brown flex items-center gap-2">
+                                                <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+                                                </svg>
+                                                Discount Promotions
+                                            </h4>
+                                            <?php if($isLive): ?>
+                                                <span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M9 12L11 14L15 10"/>
+                                                    </svg>
+                                                    LIVE NOW
+                                                </span>
+                                            <?php elseif($promo): ?>
+                                                <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">
+                                                    ⏰ SCHEDULED
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold">
+                                                    No Promotion
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <form method="POST" action="" class="space-y-4" onsubmit="return handlePromotionSubmit(this)">
+                                            <input type="hidden" name="menu_item_id" value="<?= $mid; ?>">
+                                            <input type="hidden" name="promo_id" value="<?= $promo ? (int)$promo['id'] : 0; ?>">
+
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-bold text-cafe-brown mb-2 flex items-center gap-2">
+                                                        <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20C20.55 4 21 4.45 21 5S20.55 6 20 6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4C3.45 6 3 5.55 3 5S3.45 4 4 4H7M9 3V4H15V3H9M7 6V19H17V6H7Z"/>
+                                                        </svg>
+                                                        Fixed Price (Rs) - Optional
+                                                    </label>
+                                                    <input type="number" step="0.01" name="promo_price" id="promo_price_<?= $mid ?>"
+                                                           value="<?= $promo && $promo['promo_price'] !== null ? htmlspecialchars($promo['promo_price']) : ''; ?>"
+                                                           placeholder="e.g. 1299.00"
+                                                           class="promo-price-field w-full border-2 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition-all duration-300"
+                                                           onchange="clearDiscountField(<?= $mid ?>)" />
+                                                    <p class="text-xs text-blue-600 mt-1 font-medium">Fixed promotional price override</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-bold text-cafe-brown mb-2 flex items-center gap-2">
+                                                        <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                        Discount % - Recommended
+                                                    </label>
+                                                    <input type="number" step="0.01" name="discount_percent" id="discount_percent_<?= $mid ?>"
+                                                           value="<?= $promo && $promo['discount_percent'] !== null ? htmlspecialchars($promo['discount_percent']) : ''; ?>"
+                                                           placeholder="e.g. 20"
+                                                           min="0" max="95"
+                                                           class="discount-field w-full border-2 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition-all duration-300"
+                                                           onchange="clearPromoField(<?= $mid ?>)" />
+                                                    <p class="text-xs text-emerald-600 mt-1 font-medium">Percentage discount off original price</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-bold text-cafe-brown mb-2">Promotion Label</label>
+                                                    <input type="text" name="label"
+                                                           value="<?= $promo ? htmlspecialchars($promo['label']) : 'Special Discount'; ?>"
+                                                           maxlength="60"
+                                                           class="w-full border-2 border-golden-200/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-golden-400/20 focus:border-golden-400 bg-white/80" />
+                                                </div>
+                                                <div class="flex items-center gap-3 pt-8">
+                                                    <input type="checkbox" id="active_<?= $mid; ?>" name="active"
+                                                           class="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                                                           <?= $promo ? ((int)$promo['active']===1 ? 'checked' : '') : 'checked'; ?> />
+                                                    <label for="active_<?= $mid; ?>" class="text-sm font-bold text-cafe-brown">Active Promotion</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-bold text-cafe-brown mb-2">Starts At</label>
+                                                    <input type="datetime-local" name="starts_at"
+                                                           value="<?= $promo ? htmlspecialchars(to_input_dt($promo['starts_at'] ?? null)) : ''; ?>"
+                                                           class="w-full border-2 border-golden-200/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-golden-400/20 focus:border-golden-400 bg-white/80" />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-bold text-cafe-brown mb-2">Ends At</label>
+                                                    <input type="datetime-local" name="ends_at"
+                                                           value="<?= $promo ? htmlspecialchars(to_input_dt($promo['ends_at'] ?? null)) : ''; ?>"
+                                                           class="w-full border-2 border-golden-200/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-golden-400/20 focus:border-golden-400 bg-white/80" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center flex-wrap gap-3 pt-4">
+                                                <button type="submit" name="save_promo"
+                                                        class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                    </svg>
+                                                    Save Discount
+                                                </button>
+
+                                                <?php if($promo): ?>
+                                                    <a href="menu.php?delete_promo=<?= (int)$promo['id']; ?>&mid=<?= $mid; ?>"
+                                                       onclick="return confirm('Delete this promotion?');"
+                                                       class="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                        Delete
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <!-- Enhanced Live Preview -->
+                                            <?php if($promo): ?>
+                                                <div class="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                                                    <h5 class="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2M21 9V7L15 1L13.5 2.5L16.17 5.23L10.5 10.9L16.1 16.5L21 11.9V9.5L18.5 12C17.1 13.4 14.9 13.4 13.5 12C12.1 10.6 12.1 8.4 13.5 7L16 9.5H21Z"/>
+                                                        </svg>
+                                                        Promotion Preview
+                                                    </h5>
+                                                    <div class="text-sm text-blue-700 space-y-2">
+                                                        <div class="flex justify-between">
+                                                            <strong>Label:</strong> 
+                                                            <span><?= htmlspecialchars($promo['label']); ?></span>
+                                                        </div>
+                                                        <?php if($promo['promo_price'] !== null): ?>
+                                                            <div class="flex justify-between">
+                                                                <strong>Fixed Price:</strong> 
+                                                                <span class="text-blue-600 font-bold">Rs<?= number_format((float)$promo['promo_price'], 2); ?></span>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <?php if($promo['discount_percent'] !== null): ?>
+                                                            <div class="flex justify-between">
+                                                                <strong>Discount:</strong> 
+                                                                <span class="text-emerald-600 font-bold"><?= htmlspecialchars($promo['discount_percent']); ?>% OFF</span>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <?php if($final !== null && $final !== $base): ?>
+                                                            <div class="mt-3 p-3 bg-white rounded-lg border-l-4 border-emerald-500">
+                                                                <div class="font-bold text-gray-800">Customer Pays:</div>
+                                                                <div class="flex items-center gap-3 mt-1">
+                                                                    <span class="line-through text-gray-500 text-lg">Rs<?= number_format($base, 2); ?></span>
+                                                                    <span class="text-2xl font-black text-emerald-600">Rs<?= number_format($final, 2); ?></span>
+                                                                    <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs font-bold">
+                                                                        <?= round((($base-$final)/$base)*100); ?>% SAVINGS
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <div class="mt-3 pt-2 border-t border-blue-200">
+                                                            <div class="flex justify-between items-center">
+                                                                <span class="text-xs font-medium">Status:</span>
+                                                                <span class="text-xs">
+                                                                    <?= $isLive ? '<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold">🟢 LIVE NOW</span>' : '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold">⏸ Not Live</span>'; ?>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        </form>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -1072,6 +1433,57 @@ if (isset($_GET['edit'])) {
         function removePreview() {
             document.getElementById('imagePreview').classList.add('hidden');
             document.getElementById('image_file').value = '';
+        }
+
+        // Enhanced promotion form handling
+        function clearDiscountField(itemId) {
+            const promoPrice = document.getElementById(`promo_price_${itemId}`);
+            const discountPercent = document.getElementById(`discount_percent_${itemId}`);
+            
+            if (promoPrice.value !== '') {
+                discountPercent.value = '';
+                discountPercent.style.opacity = '0.5';
+                discountPercent.disabled = true;
+            } else {
+                discountPercent.style.opacity = '1';
+                discountPercent.disabled = false;
+            }
+        }
+
+        function clearPromoField(itemId) {
+            const promoPrice = document.getElementById(`promo_price_${itemId}`);
+            const discountPercent = document.getElementById(`discount_percent_${itemId}`);
+            
+            if (discountPercent.value !== '') {
+                promoPrice.value = '';
+                promoPrice.style.opacity = '0.5';
+                promoPrice.disabled = true;
+            } else {
+                promoPrice.style.opacity = '1';
+                promoPrice.disabled = false;
+            }
+        }
+
+        function handlePromotionSubmit(form) {
+            const formData = new FormData(form);
+            const promoPrice = formData.get('promo_price');
+            const discountPercent = formData.get('discount_percent');
+
+            if (!promoPrice && !discountPercent) {
+                alert('Please enter either a fixed promo price or a discount percentage.');
+                return false;
+            }
+
+            if (promoPrice && discountPercent) {
+                if (confirm('Both promo price and discount percentage are set. The system will use the discount percentage and ignore the promo price. Continue?')) {
+                    // Clear the promo price field
+                    form.querySelector('input[name="promo_price"]').value = '';
+                    return true;
+                }
+                return false;
+            }
+
+            return true;
         }
         
         // Enhanced drag and drop functionality
@@ -1124,6 +1536,27 @@ if (isset($_GET['edit'])) {
         
         // Enhanced interactions and animations
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize promotion field interactions
+            const promoForms = document.querySelectorAll('form[method="POST"]');
+            promoForms.forEach(form => {
+                const menuItemId = form.querySelector('input[name="menu_item_id"]')?.value;
+                if (menuItemId) {
+                    const promoPrice = document.getElementById(`promo_price_${menuItemId}`);
+                    const discountPercent = document.getElementById(`discount_percent_${menuItemId}`);
+                    
+                    if (promoPrice && discountPercent) {
+                        // Initial state setup
+                        if (promoPrice.value !== '') {
+                            discountPercent.style.opacity = '0.5';
+                            discountPercent.disabled = true;
+                        } else if (discountPercent.value !== '') {
+                            promoPrice.style.opacity = '0.5';
+                            promoPrice.disabled = true;
+                        }
+                    }
+                }
+            });
+
             // Close form on escape key
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
@@ -1205,7 +1638,7 @@ if (isset($_GET['edit'])) {
 
         // Add CSS animations
         const style = document.createElement('style');
-        style.textContent = `
+        style.textContent = 
             @keyframes slideInFromTop {
                 0% {
                     transform: translateY(-100px);
@@ -1234,7 +1667,28 @@ if (isset($_GET['edit'])) {
                 -webkit-box-orient: vertical;
                 overflow: hidden;
             }
-        `;
+
+            .discount-promotion-highlight {
+                background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05));
+                border: 2px solid rgba(34, 197, 94, 0.3);
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+            }
+
+            .promotion-badge-animate {
+                animation: pulse-glow 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse-glow {
+                0%, 100% {
+                    transform: scale(1);
+                    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+                }
+                50% {
+                    transform: scale(1.05);
+                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+                }
+            }
+        ;
         document.head.appendChild(style);
     </script>
 </body>

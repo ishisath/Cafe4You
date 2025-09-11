@@ -7,6 +7,41 @@ require_once 'includes/functions.php';
 $database = new Database();
 $db = $database->getConnection();
 
+/**
+ * Decide if promo is live and compute final price.
+ * Returns [is_live(bool), final_price(float|null), badge('LIVE'|'SCHEDULED'|null)]
+ */
+function evaluate_promo(?array $row): array {
+    $base = isset($row['base_price']) ? (float)$row['base_price'] : 0.0;
+
+    // No promo at all
+    if (empty($row['promo_id'])) {
+        return [false, null, null];
+    }
+
+    $active = (int)($row['active'] ?? 0) === 1;
+    $now = new DateTime('now');
+    $starts_ok = empty($row['starts_at']) || (new DateTime($row['starts_at'])) <= $now;
+    $ends_ok   = empty($row['ends_at'])   || (new DateTime($row['ends_at']))   >= $now;
+
+    // Compute potential final
+    $final = null;
+    if ($row['promo_price'] !== null && $row['promo_price'] !== '') {
+        $final = (float)$row['promo_price'];
+    } elseif ($row['discount_percent'] !== null && $row['discount_percent'] !== '') {
+        $pct = max(0.0, min(95.0, (float)$row['discount_percent']));
+        $final = max(0.0, $base * (1 - $pct / 100.0));
+    }
+
+    // Promo considered LIVE only if: active + within window + actually cheaper
+    if ($active && $starts_ok && $ends_ok && $final !== null && $final < $base) {
+        return [true, $final, 'LIVE'];
+    }
+
+    // If we have a promo row but it's not live yet or already ended, mark SCHEDULED
+    return [false, null, 'SCHEDULED'];
+}
+
 // Get categories
 $cat_query = "SELECT * FROM categories WHERE status = 'active' ORDER BY name";
 $cat_stmt = $db->prepare($cat_query);
@@ -16,19 +51,69 @@ $categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
 // Get selected category
 $selected_category = $_GET['category'] ?? '';
 
-// Get menu items
+// Get menu items with promotional pricing data
 if ($selected_category) {
-    $menu_query = "SELECT mi.*, c.name as category_name FROM menu_items mi 
-                   JOIN categories c ON mi.category_id = c.id 
-                   WHERE mi.status = 'available' AND c.id = ?
-                   ORDER BY mi.name";
+    $menu_query = "
+        SELECT 
+            mi.id,
+            mi.name,
+            mi.description,
+            mi.image,
+            mi.price AS base_price,
+            mi.status,
+            c.name as category_name,
+            p.id AS promo_id,
+            p.promo_price,
+            p.discount_percent,
+            p.label,
+            p.starts_at,
+            p.ends_at,
+            p.active
+        FROM menu_items mi 
+        JOIN categories c ON mi.category_id = c.id 
+        LEFT JOIN (
+            SELECT mp1.*
+            FROM menu_promotions mp1
+            JOIN (
+                SELECT menu_item_id, MAX(id) AS max_id
+                FROM menu_promotions
+                GROUP BY menu_item_id
+            ) t ON t.menu_item_id = mp1.menu_item_id AND t.max_id = mp1.id
+        ) p ON p.menu_item_id = mi.id
+        WHERE mi.status = 'available' AND c.id = ?
+        ORDER BY mi.name";
     $menu_stmt = $db->prepare($menu_query);
     $menu_stmt->execute([$selected_category]);
 } else {
-    $menu_query = "SELECT mi.*, c.name as category_name FROM menu_items mi 
-                   JOIN categories c ON mi.category_id = c.id 
-                   WHERE mi.status = 'available' 
-                   ORDER BY c.name, mi.name";
+    $menu_query = "
+        SELECT 
+            mi.id,
+            mi.name,
+            mi.description,
+            mi.image,
+            mi.price AS base_price,
+            mi.status,
+            c.name as category_name,
+            p.id AS promo_id,
+            p.promo_price,
+            p.discount_percent,
+            p.label,
+            p.starts_at,
+            p.ends_at,
+            p.active
+        FROM menu_items mi 
+        JOIN categories c ON mi.category_id = c.id 
+        LEFT JOIN (
+            SELECT mp1.*
+            FROM menu_promotions mp1
+            JOIN (
+                SELECT menu_item_id, MAX(id) AS max_id
+                FROM menu_promotions
+                GROUP BY menu_item_id
+            ) t ON t.menu_item_id = mp1.menu_item_id AND t.max_id = mp1.id
+        ) p ON p.menu_item_id = mi.id
+        WHERE mi.status = 'available' 
+        ORDER BY c.name, mi.name";
     $menu_stmt = $db->prepare($menu_query);
     $menu_stmt->execute();
 }
@@ -79,6 +164,9 @@ $menu_items = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
         .menu-item-card {
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         
         .menu-item-card::before {
@@ -117,6 +205,86 @@ $menu_items = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
         @media (max-width: 768px) {
             .hero-bg {
                 background-attachment: scroll;
+            }
+        }
+
+        /* Enhanced Add to Cart Button Styles */
+        .add-to-cart-btn {
+            background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(252, 211, 77, 0.3);
+            font-size: 14px;
+            min-width: 120px;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .add-to-cart-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(252, 211, 77, 0.4);
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+
+        .add-to-cart-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .add-to-cart-btn.login-btn {
+            background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+        }
+
+        .add-to-cart-btn.login-btn:hover {
+            background: linear-gradient(135deg, #4B5563 0%, #374151 100%);
+        }
+
+        /* Consistent card layout */
+        .menu-item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-item-footer {
+            margin-top: auto;
+            padding-top: 16px;
+        }
+
+        .price-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .price-display {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .button-wrapper {
+            flex-shrink: 0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .price-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .add-to-cart-btn {
+                width: 100%;
+                margin-top: 8px;
             }
         }
     </style>
@@ -295,21 +463,47 @@ $menu_items = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             <?php else: ?>
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <?php foreach ($menu_items as $item): ?>
+                    <?php foreach ($menu_items as $item): 
+                        // Build a uniform array to feed evaluate_promo()
+                        $row = [
+                            'base_price'       => $item['base_price'],
+                            'promo_id'         => $item['promo_id'] ?? null,
+                            'promo_price'      => $item['promo_price'] ?? null,
+                            'discount_percent' => $item['discount_percent'] ?? null,
+                            'starts_at'        => $item['starts_at'] ?? null,
+                            'ends_at'          => $item['ends_at'] ?? null,
+                            'active'           => $item['active'] ?? 0,
+                        ];
+                        [$isLive, $finalPrice, $badge] = evaluate_promo($row);
+
+                        $imgSrc = $item['image'] ?: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center';
+                    ?>
                     <div class="bg-white rounded-3xl overflow-hidden card-shadow hover-lift menu-item-card">
                         <div class="relative">
-                            <img src="<?= $item['image'] ?: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center' ?>" 
+                            <img src="<?= htmlspecialchars($imgSrc) ?>" 
                                  alt="<?= htmlspecialchars($item['name']) ?>" 
-                                 class="w-full h-56 object-cover">
+                                 class="w-full h-56 object-cover"
+                                 onerror="this.src='https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center'">
                             
                             <!-- Category Badge -->
-                            <div class="absolute top-4 left-4">
-                                <span class="bg-brand-yellow text-white text-xs px-3 py-1 rounded-full font-medium">
+                            <div class="absolute top-4 left-4 flex gap-2">
+                                <span class="bg-brand-yellow text-gray-900 text-xs px-3 py-1 rounded-full font-medium border border-yellow-300">
                                     <?= htmlspecialchars($item['category_name']) ?>
                                 </span>
+
+                                <?php if ($badge === 'LIVE'): ?>
+                                    <span class="bg-emerald-500 text-white text-xs px-3 py-1 rounded-full font-semibold animate-pulse">
+                                        🔥 LIVE PROMO
+                                    </span>
+                                <?php elseif ($badge === 'SCHEDULED'): ?>
+                                    <span class="bg-yellow-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                                        ⏰ SCHEDULED
+                                    </span>
+                                <?php endif; ?>
                             </div>
                             
                             <!-- Favorite Button -->
+                            <?php if (isLoggedIn()): ?>
                             <div class="absolute top-4 right-4">
                                 <button class="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-300 group">
                                     <svg class="w-5 h-5 text-gray-600 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,37 +511,64 @@ $menu_items = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </svg>
                                 </button>
                             </div>
+                            <?php endif; ?>
                         </div>
                         
-                        <div class="p-6">
-                            <div class="mb-4">
+                        <div class="p-6 menu-item-content">
+                            <div class="mb-4 flex-grow">
                                 <h3 class="text-xl font-semibold text-gray-800 mb-2"><?= htmlspecialchars($item['name']) ?></h3>
                                 <p class="text-gray-600 text-sm leading-relaxed"><?= htmlspecialchars($item['description']) ?></p>
                             </div>
                             
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-2xl font-bold text-brand-yellow">Rs<?= number_format($item['price'], 2) ?></span>
-                                    <div class="flex items-center text-xs text-gray-500">
-                                        <svg class="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                                        </svg>
-                                        <span>4.8 (125)</span>
+                            <div class="menu-item-footer">
+                                <div class="price-section">
+                                    <div class="price-display">
+                                        <?php if ($isLive && $finalPrice !== null): ?>
+                                            <div class="space-y-1">
+                                                <div class="text-sm text-gray-500 line-through">
+                                                    Rs<?= number_format((float)$item['base_price'], 2) ?>
+                                                </div>
+                                                <div class="text-2xl font-bold text-emerald-600 flex items-center gap-2">
+                                                    Rs<?= number_format($finalPrice, 2) ?>
+                                                    <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
+                                                        <?= round((((float)$item['base_price'] - $finalPrice) / (float)$item['base_price']) * 100) ?>% OFF
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="text-2xl font-bold text-brand-yellow">Rs<?= number_format((float)$item['base_price'], 2) ?></span>
+                                                <div class="flex items-center text-xs text-gray-500">
+                                                    <svg class="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                                    </svg>
+                                                    <span>4.8 (125)</span>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="button-wrapper">
+                                        <?php if (isLoggedIn()): ?>
+                                            <form method="POST" action="add_to_cart.php" class="inline">
+                                                <input type="hidden" name="menu_item_id" value="<?= (int)$item['id'] ?>">
+                                                <button type="submit" class="add-to-cart-btn">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8.5"></path>
+                                                    </svg>
+                                                    Add to Cart
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <a href="login.php" class="add-to-cart-btn login-btn">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                                                </svg>
+                                                Login to Order
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                                
-                                <?php if (isLoggedIn()): ?>
-                                    <form method="POST" action="add_to_cart.php" class="inline">
-                                        <input type="hidden" name="menu_item_id" value="<?= $item['id'] ?>">
-                                        <button type="submit" class="bg-brand-yellow text-white px-6 py-2.5 rounded-full font-semibold hover:bg-brand-amber transform hover:scale-105 transition-all duration-300 text-sm shadow-lg">
-                                            Add to Cart
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <a href="login.php" class="bg-gray-400 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-gray-500 transition-all duration-300 text-sm">
-                                        Login to Order
-                                    </a>
-                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -493,6 +714,50 @@ $menu_items = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
                 observer.observe(el);
             });
         });
+
+        // Add to cart animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+            
+            addToCartButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // Create a ripple effect
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.classList.add('ripple');
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+        });
     </script>
+
+    <style>
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-animation {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
 </body>
 </html>

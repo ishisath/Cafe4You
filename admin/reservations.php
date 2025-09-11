@@ -978,7 +978,7 @@ if (isset($_GET['view'])) {
 
         // Add CSS animations
         const style = document.createElement('style');
-        style.textContent = `
+        style.textContent = 
             @keyframes slideInFromTop {
                 0% {
                     transform: translateY(-100px);
@@ -1000,7 +1000,7 @@ if (isset($_GET['view'])) {
                     transform: translateY(-20px);
                 }
             }
-        `;
+        ;
         document.head.appendChild(style);
     </script>
 </body>

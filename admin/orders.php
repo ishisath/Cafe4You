@@ -4,22 +4,250 @@ require_once '../config/database.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
+// Include PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
+// Uncomment this line if using Composer
+// require_once '../vendor/autoload.php';
+
+// Or use manual includes if PHPMailer was downloaded manually
+// require_once '../includes/PHPMailer/src/Exception.php';
+// require_once '../includes/PHPMailer/src/PHPMailer.php';
+// require_once '../includes/PHPMailer/src/SMTP.php';
+
 requireAdmin();
 
 $database = new Database();
 $db = $database->getConnection();
 
+// Development mode email function (saves to file instead of sending)
+function sendOrderStatusEmailDev($customer_email, $customer_name, $order_id, $new_status, $order_details) {
+    $status_messages = [
+        'pending' => 'Your order has been received and is pending confirmation.',
+        'confirmed' => 'Your order has been confirmed and will be prepared soon.',
+        'preparing' => 'Your order is currently being prepared by our kitchen staff.',
+        'ready' => 'Your order is ready for pickup/delivery!',
+        'delivered' => 'Your order has been successfully delivered.',
+        'cancelled' => 'Unfortunately, your order has been cancelled.'
+    ];
+    
+    $message = $status_messages[$new_status] ?? 'Your order status has been updated.';
+    
+    $email_content = "
+=============================================================
+EMAIL NOTIFICATION (Development Mode)
+=============================================================
+To: $customer_email
+Subject: Order #$order_id Status Update - Cafe For You
+Date: " . date('Y-m-d H:i:s') . "
+
+Hello $customer_name,
+
+Your order #$order_id status has been updated to: " . ucfirst($new_status) . "
+
+$message
+
+Order Details:
+- Order Date: " . date('F j, Y g:i A', strtotime($order_details['created_at'])) . "
+- Total Amount: Rs" . number_format($order_details['total_amount'], 2) . "
+- Delivery Address: " . htmlspecialchars($order_details['delivery_address']) . "
+
+Thank you for choosing Cafe For You!
+
+Best regards,
+The Cafe For You Team
+=============================================================
+
+";
+    
+    // Create logs directory if it doesn't exist
+    $log_dir = '../logs';
+    if (!is_dir($log_dir)) {
+        mkdir($log_dir, 0755, true);
+    }
+    
+    $log_file = $log_dir . '/email_notifications.txt';
+    file_put_contents($log_file, $email_content, FILE_APPEND | LOCK_EX);
+    return true;
+}
+
+// Production email function using PHPMailer
+function sendOrderStatusEmail($customer_email, $customer_name, $order_id, $new_status, $order_details) {
+    $mail = new PHPMailer(true);
+
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'isharasathsaranih@gmail.com'; // Replace with your Gmail
+        $mail->Password   = 'zkmpoqgxazubqaiw';    // Replace with your Gmail App Password
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        // Recipients
+        $mail->setFrom('your-email@gmail.com', 'Cafe For You');
+        $mail->addAddress($customer_email, $customer_name);
+        $mail->addReplyTo('support@cafeforyou.com', 'Cafe For You Support');
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = "Order #$order_id Status Update - Cafe For You";
+
+        // Status messages and colors
+        $status_messages = [
+            'pending' => 'Your order has been received and is pending confirmation.',
+            'confirmed' => 'Your order has been confirmed and will be prepared soon.',
+            'preparing' => 'Your order is currently being prepared by our kitchen staff.',
+            'ready' => 'Your order is ready for pickup/delivery!',
+            'delivered' => 'Your order has been successfully delivered.',
+            'cancelled' => 'Unfortunately, your order has been cancelled.'
+        ];
+        
+        $status_colors = [
+            'pending' => '#F59E0B',
+            'confirmed' => '#3B82F6',
+            'preparing' => '#8B5CF6',
+            'ready' => '#10B981',
+            'delivered' => '#6B7280',
+            'cancelled' => '#EF4444'
+        ];
+        
+        $message = $status_messages[$new_status] ?? 'Your order status has been updated.';
+        $color = $status_colors[$new_status] ?? '#6B7280';
+        
+        $html_body = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Order Status Update</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #FFFDF7 0%, #FFF9E6 100%); }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #FFC728, #FFB800); color: white; padding: 30px; text-align: center; border-radius: 15px 15px 0 0; }
+                .content { background: white; padding: 30px; border-radius: 0 0 15px 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                .status-badge { display: inline-block; background: $color; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; margin: 20px 0; }
+                .order-details { background: #FFF9E6; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #FFC728; }
+                .footer { text-align: center; padding: 20px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1 style='margin: 0; font-size: 28px;'>Cafe For You</h1>
+                    <p style='margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;'>Order Status Update</p>
+                </div>
+                
+                <div class='content'>
+                    <h2 style='color: #8B4513; margin-top: 0;'>Hello " . htmlspecialchars($customer_name) . ",</h2>
+                    
+                    <p style='font-size: 16px; line-height: 1.6; color: #333;'>
+                        We wanted to update you on the status of your order.
+                    </p>
+                    
+                    <div class='order-details'>
+                        <h3 style='color: #8B4513; margin-top: 0;'>Order #$order_id</h3>
+                        <p><strong>Current Status:</strong> <span class='status-badge' style='background: $color;'>" . ucfirst($new_status) . "</span></p>
+                        <p><strong>Status Message:</strong> $message</p>
+                        <p><strong>Order Date:</strong> " . date('F j, Y g:i A', strtotime($order_details['created_at'])) . "</p>
+                        <p><strong>Total Amount:</strong> Rs" . number_format($order_details['total_amount'], 2) . "</p>
+                    </div>
+                    
+                    <p style='font-size: 16px; line-height: 1.6; color: #333;'>
+                        If you have any questions about your order, please don't hesitate to contact us.
+                    </p>
+                    
+                    <p style='font-size: 14px; color: #666; margin-bottom: 0;'>
+                        Best regards,<br>
+                        <strong>The Cafe For You Team</strong>
+                    </p>
+                </div>
+                
+                <div class='footer'>
+                    <p style='margin: 0; font-size: 14px;'>
+                        This is an automated message. Please do not reply to this email.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+        $mail->Body = $html_body;
+        $mail->send();
+        return true;
+        
+    } catch (Exception $e) {
+        error_log("Email sending failed: {$mail->ErrorInfo}");
+        return false;
+    }
+}
+
 // Handle status updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $order_id = (int)$_POST['order_id'];
     $new_status = sanitize($_POST['status']);
+    $old_status = sanitize($_POST['old_status']);
 
-    $update_query = "UPDATE orders SET status = ? WHERE id = ?";
-    $update_stmt = $db->prepare($update_query);
-    if ($update_stmt->execute([$new_status, $order_id])) {
-        showMessage('Order status updated successfully!');
+    // Only proceed if status actually changed
+    if ($new_status !== $old_status) {
+        $update_query = "UPDATE orders SET status = ? WHERE id = ?";
+        $update_stmt = $db->prepare($update_query);
+        
+        if ($update_stmt->execute([$new_status, $order_id])) {
+            // Get order and customer details for email
+            $email_query = "SELECT o.*, u.full_name, u.email 
+                           FROM orders o 
+                           JOIN users u ON o.user_id = u.id 
+                           WHERE o.id = ?";
+            $email_stmt = $db->prepare($email_query);
+            $email_stmt->execute([$order_id]);
+            $order_details = $email_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($order_details) {
+                // Set to true for development, false for production
+                $is_development = true;
+                
+                if ($is_development) {
+                    $email_sent = sendOrderStatusEmailDev(
+                        $order_details['email'],
+                        $order_details['full_name'],
+                        $order_id,
+                        $new_status,
+                        $order_details
+                    );
+                    
+                    if ($email_sent) {
+                        showMessage("Order status updated successfully! Email notification logged to logs/email_notifications.txt (Development Mode).", 'success');
+                    } else {
+                        showMessage("Order status updated, but failed to log email notification.", 'warning');
+                    }
+                } else {
+                    $email_sent = sendOrderStatusEmail(
+                        $order_details['email'],
+                        $order_details['full_name'],
+                        $order_id,
+                        $new_status,
+                        $order_details
+                    );
+                    
+                    if ($email_sent) {
+                        showMessage("Order status updated successfully! Email notification sent to customer.", 'success');
+                    } else {
+                        showMessage("Order status updated, but failed to send email notification.", 'warning');
+                    }
+                }
+            } else {
+                showMessage('Order status updated successfully!', 'success');
+            }
+        } else {
+            showMessage('Failed to update order status', 'error');
+        }
     } else {
-        showMessage('Failed to update order status', 'error');
+        showMessage('No changes made to order status.', 'info');
     }
 }
 
@@ -186,27 +414,6 @@ if (isset($_GET['view'])) {
             transition: all 0.4s ease;
         }
 
-        .gradient-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, 
-                transparent 30%, 
-                rgba(255, 255, 255, 0.1) 50%, 
-                transparent 70%);
-            transform: rotate(45deg);
-            transition: all 0.6s ease;
-            opacity: 0;
-        }
-
-        .gradient-card:hover::before {
-            opacity: 1;
-            transform: rotate(45deg) translate(50%, 50%);
-        }
-
         .floating-animation {
             animation: float 6s ease-in-out infinite;
         }
@@ -219,32 +426,12 @@ if (isset($_GET['view'])) {
             overflow: hidden;
         }
 
-        .nav-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 199, 40, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .nav-item:hover::before {
-            left: 100%;
-        }
-        
         .nav-item.active {
             background: linear-gradient(135deg, #FFC728, #FFB800, #F5B800);
             color: #8B4513;
             box-shadow: 0 8px 32px rgba(255, 199, 40, 0.4);
             font-weight: 600;
             transform: translateX(8px);
-        }
-
-        .nav-item.active svg {
-            color: #8B4513;
-            filter: drop-shadow(0 2px 4px rgba(139, 69, 19, 0.2));
         }
 
         .nav-item:not(.active):hover {
@@ -254,30 +441,11 @@ if (isset($_GET['view'])) {
             box-shadow: 0 4px 20px rgba(255, 199, 40, 0.3);
         }
 
-        .stat-number {
-            background: linear-gradient(135deg, #F5B800 0%, #FFC728 50%, #FFB800 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 4px 8px rgba(255, 199, 40, 0.3);
-        }
-
         .icon-container {
             background: linear-gradient(135deg, #FFC728, #FFB800);
             box-shadow: 0 8px 32px rgba(255, 199, 40, 0.4);
             position: relative;
             overflow: hidden;
-        }
-
-        .icon-container::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-            animation: glow 3s ease-in-out infinite;
         }
 
         .hover-lift {
@@ -315,19 +483,6 @@ if (isset($_GET['view'])) {
             animation: shimmer 2.5s infinite;
         }
 
-        .interactive-element {
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .interactive-element:hover {
-            transform: scale(1.05);
-        }
-
-        .interactive-element:active {
-            transform: scale(0.98);
-        }
-
         .order-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
@@ -336,21 +491,6 @@ if (isset($_GET['view'])) {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-        }
-
-        .order-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 199, 40, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .order-card:hover::before {
-            left: 100%;
         }
 
         .order-card:hover {
@@ -423,13 +563,28 @@ if (isset($_GET['view'])) {
             box-shadow: 0 30px 80px rgba(255, 184, 0, 0.3);
         }
 
-        @media (max-width: 768px) {
-            .glass-card:hover {
-                transform: none;
-            }
-            .order-card:hover {
-                transform: translateY(-4px);
-            }
+        .save-button {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .save-button:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
     </style>
 </head>
@@ -585,9 +740,6 @@ if (isset($_GET['view'])) {
                         </div>
                         <div class="text-4xl font-black mb-3"><?= $stats['total_orders'] ?></div>
                         <div class="text-white/80 text-base font-medium">All customer orders</div>
-                        <div class="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full bg-white/60 rounded-full shimmer-bg"></div>
-                        </div>
                     </div>
 
                     <!-- Total Revenue Card -->
@@ -602,9 +754,6 @@ if (isset($_GET['view'])) {
                         </div>
                         <div class="text-4xl font-black mb-3">Rs<?= number_format($stats['total_revenue'], 0) ?></div>
                         <div class="text-white/80 text-base font-medium">From all orders</div>
-                        <div class="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full bg-white/60 rounded-full shimmer-bg"></div>
-                        </div>
                     </div>
 
                     <!-- Today's Orders Card -->
@@ -619,9 +768,6 @@ if (isset($_GET['view'])) {
                         </div>
                         <div class="text-4xl font-black mb-3"><?= $stats['today_orders'] ?></div>
                         <div class="text-white/80 text-base font-medium">Orders placed today</div>
-                        <div class="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full bg-white/60 rounded-full shimmer-bg"></div>
-                        </div>
                     </div>
 
                     <!-- Average Order Value Card -->
@@ -636,9 +782,6 @@ if (isset($_GET['view'])) {
                         </div>
                         <div class="text-4xl font-black mb-3">Rs<?= number_format($stats['avg_order_value'], 2) ?></div>
                         <div class="text-white/80 text-base font-medium">Per order average</div>
-                        <div class="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full bg-white/60 rounded-full shimmer-bg"></div>
-                        </div>
                     </div>
                 </div>
 
@@ -761,10 +904,13 @@ if (isset($_GET['view'])) {
 
                                         <!-- Status Update & Actions -->
                                         <div class="space-y-4 pt-6 border-t-2 border-golden-200/50">
-                                            <form method="POST" class="space-y-3">
+                                            <form method="POST" class="space-y-3" id="statusForm<?= $order['id'] ?>">
                                                 <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                <input type="hidden" name="old_status" value="<?= $order['status'] ?>">
+                                                <input type="hidden" name="update_status" value="1">
+                                                
                                                 <label class="block text-sm font-bold text-cafe-brown">Update Status</label>
-                                                <select name="status" onchange="confirmStatusChange(this)" 
+                                                <select name="status" onchange="toggleSaveButton(<?= $order['id'] ?>, '<?= $order['status'] ?>')" 
                                                         class="w-full px-4 py-3 border-2 border-golden-200/50 rounded-xl focus:outline-none focus:ring-4 focus:ring-golden-400/20 focus:border-golden-400 bg-white/80 backdrop-blur-sm transition-all duration-300 font-bold">
                                                     <option value="pending" <?= $order['status'] === 'pending' ? 'selected' : '' ?>>⏳ Pending</option>
                                                     <option value="confirmed" <?= $order['status'] === 'confirmed' ? 'selected' : '' ?>>✅ Confirmed</option>
@@ -773,7 +919,17 @@ if (isset($_GET['view'])) {
                                                     <option value="delivered" <?= $order['status'] === 'delivered' ? 'selected' : '' ?>>🚚 Delivered</option>
                                                     <option value="cancelled" <?= $order['status'] === 'cancelled' ? 'selected' : '' ?>>❌ Cancelled</option>
                                                 </select>
-                                                <input type="hidden" name="update_status" value="1">
+                                                
+                                                <button type="button" 
+                                                        onclick="saveOrderStatus(<?= $order['id'] ?>)"
+                                                        id="saveButton<?= $order['id'] ?>"
+                                                        class="w-full save-button flex items-center justify-center space-x-2"
+                                                        disabled>
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                    <span>Save Status & Send Email</span>
+                                                </button>
                                             </form>
 
                                             <a href="orders.php?view=<?= $order['id'] ?>" 
@@ -923,7 +1079,7 @@ if (isset($_GET['view'])) {
                         <button onclick="window.print()" 
                                 class="flex-1 bg-gradient-to-r from-golden-500 to-golden-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 shimmer-bg flex items-center justify-center space-x-3">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2-2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                             </svg>
                             <span>Print Order</span>
                         </button>
@@ -933,30 +1089,68 @@ if (isset($_GET['view'])) {
         </div>
     <?php endif; ?>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-3xl p-8 flex items-center space-x-4">
-            <div class="w-8 h-8 border-4 border-golden-400 border-t-transparent rounded-full animate-spin"></div>
-            <span class="text-cafe-brown font-semibold">Loading...</span>
-        </div>
-    </div>
-
     <script>
-        function confirmStatusChange(selectElement) {
-            const form = selectElement.form;
-            const newStatus = selectElement.value;
-            const orderNumber = form.querySelector('input[name="order_id"]').value;
-
-            if (confirm(`Are you sure you want to change order #${orderNumber} status to "${newStatus}"?`)) {
-                form.submit();
+        function toggleSaveButton(orderId, originalStatus) {
+            const form = document.getElementById(`statusForm${orderId}`);
+            const saveButton = document.getElementById(`saveButton${orderId}`);
+            const statusSelect = form.querySelector('select[name="status"]');
+            
+            const hasChanged = statusSelect.value !== originalStatus;
+            
+            saveButton.disabled = !hasChanged;
+            
+            if (hasChanged) {
+                saveButton.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                saveButton.style.color = 'white';
             } else {
-                // Reset to previous value if cancelled
-                selectElement.selectedIndex = 0;
+                saveButton.style.background = '#9CA3AF';
+                saveButton.style.color = '#6B7280';
             }
         }
 
-        // Enhanced modal handling
+        function saveOrderStatus(orderId) {
+            const form = document.getElementById(`statusForm${orderId}`);
+            const saveButton = document.getElementById(`saveButton${orderId}`);
+            const statusSelect = form.querySelector('select[name="status"]');
+            const oldStatusInput = form.querySelector('input[name="old_status"]');
+            
+            const newStatus = statusSelect.value;
+            const oldStatus = oldStatusInput.value;
+            
+            if (newStatus === oldStatus) {
+                alert('No changes to save.');
+                return;
+            }
+            
+            const statusLabels = {
+                'pending': 'Pending',
+                'confirmed': 'Confirmed', 
+                'preparing': 'Preparing',
+                'ready': 'Ready',
+                'delivered': 'Delivered',
+                'cancelled': 'Cancelled'
+            };
+            
+            if (confirm(`Are you sure you want to change order #${orderId} status from "${statusLabels[oldStatus]}" to "${statusLabels[newStatus]}"?\n\nAn email notification will be sent to the customer.`)) {
+                // Show loading state
+                saveButton.disabled = true;
+                saveButton.innerHTML = `
+                    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Saving & Sending Email...</span>
+                `;
+                
+                form.submit();
+            }
+        }
+
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all save buttons as disabled
+            const saveButtons = document.querySelectorAll('[id^="saveButton"]');
+            saveButtons.forEach(button => {
+                button.disabled = true;
+            });
+
             // Close modal on escape key
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && document.getElementById('order-modal')) {
@@ -964,86 +1158,22 @@ if (isset($_GET['view'])) {
                 }
             });
 
-            // Close modal on background click
-            const modal = document.getElementById('order-modal');
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        window.location.href = 'orders.php';
-                    }
-                });
-            }
-
-            // Enhanced hover effects for order cards
-            const orderCards = document.querySelectorAll('.order-card');
-            orderCards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-12px) scale(1.03)';
-                });
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = '';
-                });
-            });
-
-            // Success message animation
+            // Auto-hide messages after 8 seconds
             const messages = document.querySelectorAll('.alert, .success, .error');
             messages.forEach(message => {
-                message.style.animation = 'slideInFromTop 0.5s ease-out';
                 setTimeout(() => {
                     if (message.parentElement) {
-                        message.style.animation = 'fadeOut 0.5s ease-out';
+                        message.style.transition = 'opacity 0.5s ease-out';
+                        message.style.opacity = '0';
                         setTimeout(() => {
                             if (message.parentElement) {
                                 message.remove();
                             }
                         }, 500);
                     }
-                }, 5000);
+                }, 8000);
             });
         });
-
-        // Enhanced button interactions
-        const buttons = document.querySelectorAll('button, .btn, a[class*="bg-"]');
-        buttons.forEach(button => {
-            button.addEventListener('mousedown', function() {
-                this.style.transform = 'scale(0.95)';
-            });
-            
-            button.addEventListener('mouseup', function() {
-                this.style.transform = '';
-            });
-            
-            button.addEventListener('mouseleave', function() {
-                this.style.transform = '';
-            });
-        });
-
-        // Add CSS animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInFromTop {
-                0% {
-                    transform: translateY(-100px);
-                    opacity: 0;
-                }
-                100% {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes fadeOut {
-                0% {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-                100% {
-                    opacity: 0;
-                    transform: translateY(-20px);
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
