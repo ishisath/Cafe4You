@@ -98,3 +98,28 @@ Best regards,
 The Cafe For You Team
 =============================================================
 
+
+=============================================================
+EMAIL NOTIFICATION (Development Mode)
+=============================================================
+To: isharasathsaranih@gmail.com
+Subject: Order #15 Status Update - Cafe For You
+Date: 2025-09-11 11:25:15
+
+Hello Herath,
+
+Your order #15 status has been updated to: Confirmed
+
+Your order has been confirmed and will be prepared soon.
+
+Order Details:
+- Order Date: September 11, 2025 4:54 PM
+- Total Amount: Rs216.00
+- Delivery Address: Welagane,Maspotha
+
+Thank you for choosing Cafe For You!
+
+Best regards,
+The Cafe For You Team
+=============================================================
+
