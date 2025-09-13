@@ -367,7 +367,7 @@ if (isset($_GET['edit'])) {
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-        
+
         body { 
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #FFFDF7 0%, #FFF9E6 25%, #FFF0B8 50%, #FFE388 75%, #FFD558 100%);
@@ -1406,8 +1406,8 @@ if (isset($_GET['edit'])) {
             <span class="text-cafe-brown font-semibold">Loading...</span>
         </div>
     </div>
-
-    <script>
+    
+    <script>  
         function showAddForm() {
             document.getElementById('itemForm').classList.remove('hidden');
             document.getElementById('itemForm').scrollIntoView({ behavior: 'smooth' });
